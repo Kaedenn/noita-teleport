@@ -1,0 +1,4 @@
+<Mod
+    name="Quick Waypoint/Teleport"
+    description="This mod allows you to teleport and return to various points of interest"
+    request_no_api_restrictions="0" />
