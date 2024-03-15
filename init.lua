@@ -25,10 +25,6 @@
 --  BiomeMapConvertPixelFromUintToInt to get color, possibly?
 --]]
 
---[[ FIXME:
--- Refresh should recalculate orbs and temples
---]]
-
 dofile_once("data/scripts/lib/utilities.lua")
 dofile_once("data/scripts/lib/mod_settings.lua")
 KConf = dofile_once("mods/kae_waypoint/config.lua")
@@ -38,10 +34,10 @@ dofile_once("mods/kae_waypoint/files/utility.lua")
 
 local imgui
 local g_messages = {}
-local g_force_update = true
-local g_toveri_updated = false
-local g_teleport_now = false
-local g_save_ng = 0
+local g_force_update = true     -- trigger a POI recalculation
+local g_toveri_updated = false  -- did we determine Toveri's location?
+local g_teleport_now = false    -- don't just load the POI; teleport to it
+local g_save_ng = 0             -- cached NG+ count
 
 -- Inputs to the main GUI. Global so other functions can update them.
 local input_x = 0
@@ -206,17 +202,16 @@ function _add_menu_item(item)
             end
             imgui.EndMenu()
         end
+    else
         -- Nested items can't have coordinates of their own
-        return
-    end
-
-    local pos = item[2] or {}
-    if #pos < 2 then
-        label = label .. " [TODO]"
-    end
-    if imgui.MenuItem(label) then
-        load_waypoint({label, pos})
-        add_msg(("Loaded waypoint %q"):format(label))
+        local pos = item[2] or {}
+        if #pos < 2 then
+            label = label .. " [TODO]"
+        end
+        if imgui.MenuItem(label) then
+            load_waypoint({label, pos})
+            add_msg(("Loaded waypoint %q"):format(label))
+        end
     end
 end
 
@@ -224,30 +219,24 @@ function _build_menu_bar_gui()
     if imgui.BeginMenuBar() then
         local mstr
         if imgui.BeginMenu("Actions") then
-
             if imgui.MenuItem("Refresh") then
                 g_force_update = true
             end
-
             mstr = KConf.SETTINGS:f_enable("show_current_pos")
             if imgui.MenuItem(mstr .. " Position Display") then
                 KConf.SETTINGS:toggle("show_current_pos")
             end
-
             mstr = KConf.SETTINGS:f_enable("debug")
             if imgui.MenuItem(mstr .. " Debugging") then
                 KConf.SETTINGS:toggle("debug")
             end
-
             if imgui.MenuItem("Clear") then
                 g_messages = {}
             end
-
             if imgui.MenuItem("Close") then
                 KConf.SETTINGS:set("enable", false)
                 imgui.SetWindowFocus(nil)
             end
-
             imgui.EndMenu()
         end
         if imgui.BeginMenu("Temples") then
@@ -260,9 +249,6 @@ function _build_menu_bar_gui()
             for _, odef in pairs(POI.Orbs) do
                 _add_menu_item(odef:as_poi())
             end
-            --[[for orbid, orb in pairs(POI.ORBS) do
-                _add_menu_item(imgui, orb)
-            end]]
             imgui.EndMenu()
         end
         if imgui.BeginMenu("Bosses") then
@@ -396,7 +382,6 @@ end
 function _do_post_update()
     local window_flags = imgui.WindowFlags.NoFocusOnAppearing + imgui.WindowFlags.MenuBar
     if KConf.SETTINGS:get("enable") then
-
         --[[ Determine if we need to update anything ]]
         local newgame_n = tonumber(SessionNumbersGetValue("NEW_GAME_PLUS_COUNT"))
         if newgame_n ~= g_save_ng or #POI.Orbs == 0 or #POI.Temples == 0 then
@@ -410,13 +395,14 @@ function _do_post_update()
         if g_force_update then
             POI.Orbs = {}
             POI.init_orb_list(POI.Orbs)
+            debug_msg("Orbs updated")
             POI.Temples = {}
             POI.init_temple_list(POI.Temples)
-            debug_msg("Orbs, temples updated")
+            debug_msg("Temples updated")
         end
 
         --[[ Determine where Toveri is ]]
-        if g_force_update or not g_toveri_updated then
+        if not g_toveri_updated then
             local cave_idx = deduce_toveri_cave()
             local tpos = update_toveri_cave(cave_idx)
             g_toveri_updated = true
