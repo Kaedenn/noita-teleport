@@ -6,7 +6,7 @@ Comes prebuilt with numerous predefined destinations, including all orbs, all bo
 
 # Dependencies
 
-This mod requires [Noita-Dear-ImGui](https://github.com/dextercd/Noita-Dear-ImGui/releases/latest), which _must_ be above this mod in the load order.
+This mod requires `Noita-Dear-ImGui`, which _must_ be above this mod in the load order. This mod can be found by searching the Noita Mod Workshop (not Steam Workshop!) for "Noita-Dear-ImGui". It's also downloadable via the Noita discord.
 
 # Installation
 
