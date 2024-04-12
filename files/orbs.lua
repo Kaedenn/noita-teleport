@@ -8,12 +8,15 @@
 dofile_once("data/scripts/lib/utilities.lua")
 
 BIOME_EMPTY = "_EMPTY_"
+BIOME_SIZE = 512
+BIOME_SHIFT = 256
 
 Orbs = {}
 
 --[[
 -- The orb map is complicated, because GameGetOrbCollectedThisRun(idx) and
--- orb_map_get()[idx+1] do not agree.
+-- orb_map_get()[idx+1] do not agree. Moreover, this is different between
+-- NG and NG+.
 --
 -- Columns are:
 --  NG orb index (for orb_map_get location)
@@ -43,11 +46,11 @@ function Orb:new(odef) -- {id, name, biome, opos, wpos}
     setmetatable(this, { __index = self })
     this._id = odef[1]
     this._name = odef[2]
-    this._biome = odef[3] or ""
+    this._biome = odef[3] or BIOME_EMPTY
     this._orb_pos = odef[4]
     this._real_pos = {
-        odef[4][1] * 512 + 256,
-        odef[4][2] * 512 + 256
+        odef[4][1] * BIOME_SIZE + BIOME_SHIFT,
+        odef[4][2] * BIOME_SIZE + BIOME_SHIFT
     }
     return this
 end
@@ -84,7 +87,7 @@ function init_orb_list(orb_list)
             if newgame_n == 0 then
                 orb_biome = orb_def[5]
             else
-                orb_biome = orb_def[6] or ""
+                orb_biome = orb_def[6] or BIOME_EMPTY
             end
         end
         table.insert(orb_list, Orb:new({

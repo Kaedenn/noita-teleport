@@ -2,20 +2,25 @@
 --
 -- Taken mostly from cheatgui.
 --
+-- FIXME:
+--  Collapsed feedback is inaccurate for NG+
+--  Occasionally you're teleported just above the HM entry room (Snowy Depths)
+-- TODO:
+--  Determine if HM_COARSE_STEP/HM_FINE_MAX should be 512 instead of 500
 --]]
 
 Temples = {}
 
-HM_COARSE_MIN = 0
-HM_COARSE_MAX = 15000
-HM_COARSE_STEP = 500
-HM_FINE_MAX = 500
-HM_FINE_ADJUST = 10
+HM_COARSE_MIN = 0       -- Coarse: start at Y=0
+HM_COARSE_MAX = 12000   -- Coarse: maximum vertical scan (last HM is ~13000)
+HM_COARSE_STEP = 500    -- Coarse: vertical scan amount
+HM_FINE_MAX = 500       -- Fine: maximum vertical scan
+HM_FINE_ADJUST = 10     -- Fine: vertical scan amount
 HM_ADJUST_DELTA = 200
 
-HM_ABS_X = -677 -- See data/entities/buildings/teleport_liquid_powered.xml
-HM_REAL_X = -359 -- Deduced experimentally
-HM_REAL_ADJUST = -27
+HM_ABS_X = -677         -- data/entities/buildings/teleport_liquid_powered.xml
+HM_REAL_X = -359        -- actual X coordinate; deduced experimentally
+HM_REAL_ADJUST = -27    -- Y adjustment
 
 --[[ Find the exact Y position from a relative one.
 --
@@ -88,7 +93,7 @@ function Temple:new(tdef)
 end
 
 function Temple:as_poi(direct)
-    local newgame_n = tonumber(SessionNumbersGetValue("NEW_GAME_PLUS_COUNT"))
+    --local newgame_n = tonumber(SessionNumbersGetValue("NEW_GAME_PLUS_COUNT"))
     local name = self._biome
     if not direct and self:is_collapsed() then
         name = name .. " [Collapsed]" -- FIXME: inaccurate for NG+

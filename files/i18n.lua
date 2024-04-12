@@ -28,7 +28,7 @@ function _localize(item, titlecase)
     else
         error(("Cannot localize %s"):format(tostring(item)))
     end
-    if titlecase then return title(result) end
+    if titlecase then return to_title(result) end
     return result
 end
 
@@ -48,7 +48,7 @@ function _localize_multi(array, titlecase)
         if type(item) == "table" then
             table.insert(results, _localize(item, titlecase))
         elseif type(item) == "string" then
-            if titlecase then item = title(item) end
+            if titlecase then item = to_title(item) end
             table.insert(results, item)
         else
             table.insert(results, tostring(item))

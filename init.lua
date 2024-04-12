@@ -7,6 +7,7 @@
 --  Temples
 --
 -- Key features include:
+--  Correct Orb locations for NG and NG+
 --  Correct identification of Toveri's cave
 --  Identification of collapsed temples (only works in NG)
 --  Live tracking of player position
@@ -27,10 +28,13 @@
 
 dofile_once("data/scripts/lib/utilities.lua")
 dofile_once("data/scripts/lib/mod_settings.lua")
-KConf = dofile_once("mods/kae_waypoint/config.lua")
-POI = dofile_once("mods/kae_waypoint/files/poi.lua")
+KConf = dofile_once("mods/kae_waypoint/files/config.lua")
+dofile_once("mods/kae_waypoint/files/poi.lua")
 I18N = dofile_once("mods/kae_waypoint/files/i18n.lua")
-dofile_once("mods/kae_waypoint/files/utility.lua")
+smallfolk = dofile_once("mods/kae_waypoint/files/lib/smallfolk.lua")
+
+--[[ ModSettingSet(CONF_SAVE_KEY, value) to add custom waypoints ]]
+CONF_SAVE_KEY = MOD_ID .. "." .. "_places"
 
 local imgui
 local g_messages = {}
@@ -39,37 +43,60 @@ local g_toveri_updated = false  -- did we determine Toveri's location?
 local g_teleport_now = false    -- don't just load the POI; teleport to it
 local g_save_ng = 0             -- cached NG+ count
 
--- Inputs to the main GUI. Global so other functions can update them.
+--[[ Inputs to the main GUI. Global so other functions can update them. ]]
 local input_x = 0
 local input_y = 0
 local input_world = 0
 local input_relative = false
 
+--[[ Player coordinates prior to the warp, for optional return later ]]
+local save_x, save_y, save_world = nil, nil, nil
+
+--[[ Do the two messages match? ]]
+function compare_msg(msg1, msg2)
+    if type(msg1) == "string" and type(msg2) == "string" then
+        return msg == msg2
+    end
+    if type(msg1) == "table" and type(msg2) == "table" then
+        if #msg1 ~= #msg2 then return false end
+        for idx = 1, #msg1 do
+            if msg1[idx] ~= msg2[idx] then return false end
+        end
+        return true
+    end
+    return tostring(msg1) == tostring(msg2)
+end
+
+--[[ Add a message to the top of the output list ]]
 function add_msg(msg)
     table.insert(g_messages, 1, msg)
 end
 
+--[[ Add a message, unless it was just added ]]
 function add_last_msg(msg)
-    if #g_messages > 0 and g_messages[#g_messages] ~= msg then
+    if #g_messages == 0 or not compare_msg(g_messages[1], msg) then
         add_msg(msg)
     end
 end
 
+--[[ Add a message, unless it was ever added ]]
 function add_unique_msg(msg)
     for _, message in ipairs(g_messages) do
-        if message == msg then
+        if compare_msg(message, msg) then
             return
         end
     end
     add_msg(msg)
 end
 
+--[[ Add a debugging message ]]
 function debug_msg(msg)
     if KConf.SETTINGS:get("debug") then
-        add_msg("DEBUG: " .. msg)
+        add_last_msg("DEBUG: " .. msg)
     end
 end
 
+--[[ Called on error caught by xpcall ]]
 function on_error(arg)
     if arg ~= nil then
         GamePrint(tostring(arg))
@@ -80,12 +107,10 @@ function on_error(arg)
     end
     if debug and debug.traceback then
         add_msg(debug.traceback())
-    else
-        add_msg("debug or debug.traceback unavailable")
     end
 end
 
--- value == nil ? nilvalue : value
+--[[ value == nil ? nilvalue : value ]]
 function nil_or(value, nilvalue)
     if value == nil then
         return nilvalue
@@ -93,33 +118,38 @@ function nil_or(value, nilvalue)
     return value
 end
 
--- The world size can vary between NG and NG+
+--[[ The world size can vary between NG and NG+ ]]
 function get_world_width()
     return BiomeMapGetSize() * 512
 end
 
--- Get the absolute position of the player
+--[[ Get the absolute position of the player ]]
 function get_player_pos(player)
     local px, py = EntityGetTransform(player)
     return px, py
 end
 
--- Decompose absolute [x, y] into [x, y, world offset]
+--[[ Decompose absolute [x, y] into [x, y, world offset] ]]
 function pos_abs_to_rel(px, py)
     local pw, mx = check_parallel_pos(px)
     return mx, py, pw
 end
 
--- Compose [x, y, world offset] into absolute [x, y]
+--[[ Compose [x, y, world offset] into absolute [x, y] ]]
 function pos_rel_to_abs(px, py, world)
     local x_adj = get_world_width() * world
     return px + x_adj, py
 end
 
--- Player coordinates prior to the warp, for optional return later
-local save_x, save_y, save_world = nil, nil, nil
+--[[ Get the current position of the player, relative to the current world ]]
+function get_current_pos()
+    local px, py = get_player_pos(get_players()[1])
+    if not px or not py then return nil, nil, nil end
+    local wx, wy, wnum = pos_abs_to_rel(px, py)
+    return wx, wy, wnum
+end
 
--- Warp the player to the given coordinates
+--[[ Warp the player to the given coordinates ]]
 function warp_to(args)
     if #args == 0 then
         add_msg("ERROR: warp_to() missing required argument")
@@ -171,6 +201,15 @@ function load_waypoint(item)
     local target_x = pos[1] or pos.x or nil
     local target_y = pos[2] or pos.y or nil
     local target_world = pos[3] or pos.world or 0
+
+    -- Allow for locations to provide custom logic (see README.md)
+    if type(pos.refine_fn) == "function" then
+        local new_x, new_y, new_world = pos.refine_fn(pos)
+        if new_x ~= nil then target_x = new_x end
+        if new_y ~= nil then target_y = new_y end
+        if new_world ~= nil then target_world = new_world end
+    end
+
     if target_x == nil or target_y == nil then
         add_msg(("Invalid waypoint %s"):format(name))
         return
@@ -184,11 +223,32 @@ function load_waypoint(item)
     end
 end
 
-function save_player_pos(player)
-    local abs_x, abs_y = get_player_pos(player)
-    local plr_x, plr_y, plr_world = pos_abs_to_rel(abs_x, abs_y)
+--[[ Merge any locations defined via mod settings ]]
+function load_poi_config()
+    local data = ModSettingGet(CONF_SAVE_KEY)
+    local new_data = ModSettingGetNextValue(CONF_SAVE_KEY)
+    if new_data ~= nil and data ~= new_data then
+        -- Persist new_data to data
+        ModSettingSet(CONF_SAVE_KEY, new_data)
+        data = new_data
+    end
 
-    -- TODO
+    local new_places = {}
+    if data ~= nil then
+        local entries = smallfolk.loads(data)
+        debug_msg(("Loaded %d entries from %s"):format(#entries, data))
+        for _, entry in ipairs(entries) do
+            if not is_valid_poi(entry) then
+                debug_msg(("Malformed entry %s"):format(smallfolk.dumps(entry)))
+            elseif is_duplicate_poi(entry) then
+                debug_msg(("Duplicate entry %s"):format(smallfolk.dumps(entry)))
+            else
+                debug_msg(("Adding entry %s"):format(smallfolk.dumps(entry)))
+                table.insert(new_places, create_poi(entry))
+            end
+        end
+    end
+    return new_places
 end
 
 function _add_menu_item(item)
@@ -205,12 +265,25 @@ function _add_menu_item(item)
     else
         -- Nested items can't have coordinates of their own
         local pos = item[2] or {}
+
+        -- Allow for entries to have custom logic (see README.md)
+        if type(item.filter_fn) == "function" then
+            if not item.filter_fn(item) then
+                --debug_msg(("Item %s requested filtering"):format(label_raw))
+                return
+            end
+        end
+
         if #pos < 2 then
             label = label .. " [TODO]"
         end
         if imgui.MenuItem(label) then
             load_waypoint({label, pos})
-            add_msg(("Loaded waypoint %q"):format(label))
+            local xpos, ypos, wpos = pos_abs_to_rel(pos[1], pos[2])
+            add_msg({
+                ("Loaded waypoint %q"):format(label),
+                pos = {x=xpos, y=ypos, world=wpos}
+            })
         end
     end
 end
@@ -240,40 +313,42 @@ function _build_menu_bar_gui()
             imgui.EndMenu()
         end
         if imgui.BeginMenu("Temples") then
-            for _, tdef in ipairs(POI.Temples) do
+            for _, tdef in ipairs(Temples) do
                 _add_menu_item(tdef:as_poi())
             end
             imgui.EndMenu()
         end
         if imgui.BeginMenu("Orbs") then
-            for _, odef in pairs(POI.Orbs) do
+            for _, odef in pairs(Orbs) do
                 _add_menu_item(odef:as_poi())
             end
             imgui.EndMenu()
         end
         if imgui.BeginMenu("Bosses") then
-            for _, boss in ipairs(POI.BOSSES) do
+            for _, boss in ipairs(BOSSES) do
                 _add_menu_item(boss)
             end
             imgui.EndMenu()
         end
         if imgui.BeginMenu("Places") then
-            for _, place in ipairs(POI.PLACES) do
+            for _, place in ipairs(PLACES) do
+                _add_menu_item(place)
+            end
+            for _, place in ipairs(load_poi_config()) do
                 _add_menu_item(place)
             end
             imgui.EndMenu()
         end
-        --[[ TODO: Saved waypoints
-        if imgui.BeginMenu("Waypoints") then
-            imgui.EndMenu()
-        end
-        ]]
         imgui.EndMenuBar()
     end
 end
 
 function _build_gui()
     local player = get_players()[1]
+    if not player or player == 0 then
+        --[[ Player entity not available ]]
+        return nil
+    end
 
     local curr_abs_x, curr_abs_y = get_player_pos(player)
     if curr_abs_x == nil or curr_abs_y == nil then
@@ -282,31 +357,34 @@ function _build_gui()
     end
     local curr_rel_x, curr_rel_y, curr_world = pos_abs_to_rel(curr_abs_x, curr_abs_y)
 
-    if KConf.SETTINGS:get("show_current_pos") then
-        local show_x = curr_rel_x
-        local show_y = curr_rel_y
-        local show_world = curr_world
-        if input_relative then
-            show_x = curr_abs_x
-            show_y = curr_abs_y
-            show_world = 0
-        end
-        imgui.Text(("%.2f %.2f %d"):format(show_x, show_y, show_world))
+    -- Always display current position in the GUI
+    local show_x = curr_rel_x
+    local show_y = curr_rel_y
+    local show_world = curr_world
+    if input_relative then
+        show_x = curr_abs_x
+        show_y = curr_abs_y
+        show_world = 0
     end
+    imgui.Text(("%.2f %.2f %d"):format(show_x, show_y, show_world))
 
     -- Configured: input_{x,y,world}
     -- Current: curr_abs_{x,y} curr_rel_{x,y,world}
     -- Prior: save_{x,y,world}
+    imgui.SetNextItemWidth(200)
     ret, input_x, input_y = imgui.InputFloat2("X,Y", input_x, input_y)
     imgui.SameLine()
+    imgui.SetNextItemWidth(100)
     ret, input_world = imgui.InputInt("World", input_world)
     ret, input_relative = imgui.Checkbox("Relative", input_relative)
-
-    --[[ TODO: Waypoint name input ]]
 
     if imgui.Button("Get Position") then
         local plr_x, plr_y = get_player_pos(player)
         input_x, input_y, input_world = pos_abs_to_rel(plr_x, plr_y)
+        add_msg({
+            ("Got %d, %d, world %d"):format(input_x, input_y, input_world),
+            pos = {x=input_x, y=input_y, world=input_world}
+        })
     end
 
     imgui.SameLine()
@@ -320,25 +398,19 @@ function _build_gui()
         }
     end
 
-    --[[ TODO: Buttons to save and remove saved waypoints
-    if imgui.Button("Store Position") then
-    end
-
-    if imgui.Button("Remove Saved Position") then
-    end
-    ]]
-
     imgui.SameLine()
     if imgui.Button("Go West") then
         warp_to{player,
-            world = curr_world - 1
+            world = curr_world - 1,
+            returning = true
         }
     end
 
     imgui.SameLine()
     if imgui.Button("Go East") then
         warp_to{player,
-            world = curr_world + 1
+            world = curr_world + 1,
+            returning = true
         }
     end
 
@@ -346,14 +418,11 @@ function _build_gui()
         imgui.SameLine()
         if imgui.Button("Go Main World") then
             warp_to{player,
-                world = 0
+                world = 0,
+                returning = true
             }
         end
     end
-
-    --[[if imgui.Button("Save Position") then
-        save_player_pos(player)
-    end]]
 
     if save_x ~= nil and save_y ~= nil and save_world ~= nil then
         if imgui.Button("Teleport Back") then
@@ -366,43 +435,83 @@ function _build_gui()
         end
     end
 
-    for index, entry in ipairs(g_messages) do
-        if type(entry) == "table" then
-            for j, msg in ipairs(entry) do
-                imgui.Text(msg)
-            end
-        else
-            imgui.Text(entry)
-        end
+    for _, entry in ipairs(g_messages) do
+        _draw_line(entry)
     end
     return true
 
 end
 
+function _draw_line(line)
+    if type(line) == "string" then
+        imgui.Text(line)
+        return
+    end
+
+    if type(line) ~= "table" then
+        imgui.Text(tostring(line))
+        return
+    end
+
+    if line.color then
+        imgui.PushStyleColor(imgui.Col.Text, unpack(line.color))
+    end
+
+    if line.pos and line.pos.x and line.pos.y then
+        if imgui.SmallButton("Return") then
+            debug_msg(("Return %s"):format(smallfolk.dumps(line.pos)))
+            local player = line.pos.player or get_players()[1]
+            local xpos, ypos = line.pos.x, line.pos.y
+            local wpos = line.pos.world or 0
+            warp_to{get_players()[1],
+                x = xpos,
+                y = ypos,
+                world = wpos,
+                returning = true
+            }
+        end
+        imgui.SameLine()
+    end
+    for idx, token in ipairs(line) do
+        if idx ~= 1 then imgui.SameLine() end
+        _draw_line(token)
+    end
+
+    if line.color then
+        imgui.PopStyleColor()
+    end
+end
+
 function _do_post_update()
-    local window_flags = imgui.WindowFlags.NoFocusOnAppearing + imgui.WindowFlags.MenuBar
     if KConf.SETTINGS:get("enable") then
+        local window_flags = bit.bor(
+            imgui.WindowFlags.NoFocusOnAppearing,
+            imgui.WindowFlags.HorizontalScrollbar,
+            imgui.WindowFlags.MenuBar)
+
         --[[ Determine if we need to update anything ]]
         local newgame_n = tonumber(SessionNumbersGetValue("NEW_GAME_PLUS_COUNT"))
-        if newgame_n ~= g_save_ng or #POI.Orbs == 0 or #POI.Temples == 0 then
+        if newgame_n ~= g_save_ng or #Orbs == 0 or #Temples == 0 then
             debug_msg(("Forcing update; NG %d->%d, %d orbs, %d temples"):format(
-                g_save_ng, newgame_n, #POI.Orbs, #POI.Temples))
+                g_save_ng, newgame_n, #Orbs, #Temples))
             g_force_update = true
             g_save_ng = newgame_n
         end
 
         --[[ If we need to update anything, update everything ]]
         if g_force_update then
-            POI.Orbs = {}
-            POI.init_orb_list(POI.Orbs)
+            Orbs = {}
+            init_orb_list(Orbs)
             debug_msg("Orbs updated")
-            POI.Temples = {}
-            POI.init_temple_list(POI.Temples)
+            Temples = {}
+            init_temple_list(Temples)
             debug_msg("Temples updated")
+            g_force_update = false
         end
 
         --[[ Determine where Toveri is ]]
         if not g_toveri_updated then
+            -- luacheck: globals deduce_toveri_cave update_toveri_cave
             local cave_idx = deduce_toveri_cave()
             local tpos = update_toveri_cave(cave_idx)
             g_toveri_updated = true
@@ -410,7 +519,18 @@ function _do_post_update()
                 cave_idx, tpos[1], tpos[2]))
         end
 
-        if imgui.Begin("Waypoints", nil, window_flags) then
+        title = "Teleport"
+        if KConf.SETTINGS:get("show_current_pos") then
+            local plrx, plry, plrw = get_current_pos()
+            if plrx ~= nil and plry ~= nil then
+                local pos_str = ("%d, %d"):format(plrx, plry)
+                if plrw ~= 0 then
+                    pos_str = ("%d, %d world %d"):format(plrx, plry, plrw)
+                end
+                title = ("Teleport: %s"):format(pos_str)
+            end
+        end
+        if imgui.Begin(("%s###Teleport"):format(title), nil, window_flags) then
             _build_menu_bar_gui()
             _build_gui()
             imgui.End()
@@ -418,12 +538,14 @@ function _do_post_update()
     end
 end
 
-function OnWorldInitialized()
-    g_force_update = true
+function OnModPostInit()
+    if load_imgui then
+        imgui = load_imgui({version="1.0.0", mod="kae_waypoint"})
+    end
 end
 
-function OnModPostInit()
-    imgui = load_imgui({version="1.0.0", mod="kae_waypoint"})
+function OnWorldInitialized()
+    g_force_update = true
 end
 
 function OnPlayerSpawned(player_entity)
@@ -431,10 +553,14 @@ function OnPlayerSpawned(player_entity)
 end
 
 function OnWorldPostUpdate()
-    if imgui == nil then
-        OnModPostInit()
+    if imgui ~= nil then
+        local status, result = xpcall(_do_post_update, on_error)
+        if not status then
+            GamePrint(("_do_post_update failed with %s"):format(result))
+        end
+    else
+        GamePrint("kae_waypoint - imgui not found; see workshop page for instructions")
     end
-    local status, result = xpcall(_do_post_update, on_error)
 end
 
 -- vim: set ts=4 sts=4 sw=4 tw=79:

@@ -1,26 +1,22 @@
-dofile("data/scripts/lib/utilities.lua")
-dofile("data/scripts/lib/mod_settings.lua")
+dofile_once("data/scripts/lib/utilities.lua")
+dofile_once("data/scripts/lib/mod_settings.lua")
 
-local MOD_ID = "kae_waypoint"
+MOD_ID = "kae_waypoint"
 
-local SETTINGS = setmetatable({
-    ENABLE = {      -- should we draw the UI?
+SETTINGS = setmetatable({
+    ENABLE = {          -- should we draw the UI?
         name = "enable",
         default = true,
-    },
-    TEXT_SIZE = {   -- how big should the input buffer be?
-        name = "text_size",
-        default = 256,
     },
     SHOW_CURRENT_POS = { -- should we display the current player position?
         name = "show_current_pos",
         default = false,
     },
-    QUICK_TELEPORT = { -- should we teleport immediately after selecting a POI?
+    QUICK_TELEPORT = {  -- should we teleport immediately after selecting a POI?
         name = "quick_teleport",
         default = false,
     },
-    DEBUG = {       -- should we output debug messages?
+    DEBUG = {           -- should we output debug messages?
         name = "debug",
         default = false,
     },

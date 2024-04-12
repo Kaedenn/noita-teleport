@@ -1,7 +1,7 @@
 <Mod
     name="kae_waypoint"
     description=""
-    tags="cheats"
-    dont_upload_folders="backups"
+    tags="cheats,gameplay,quality of life"
+    dont_upload_files="Makefile.sh"
 > 
 </Mod>

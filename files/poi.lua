@@ -1,26 +1,16 @@
 -- Coordinates to and supporting functions for the orbs, bosses, and
 -- poits of interest.
 --
--- Currently does not support NG+. This is planned, though.
+-- This file is a work-in-progress.
 --
+
+--[[ Epilogue 2 locations:
+-- Eye Platform 5933 -4825
+--]]
 
 dofile_once("data/scripts/lib/utilities.lua")
 dofile_once("mods/kae_waypoint/files/temple.lua")
 dofile_once("mods/kae_waypoint/files/orbs.lua")
-
-ORBS = {
-    {"Toth ($biome_pyramid)", {10000, -1170}},
-    {"Vol I (Mountain Altar)", {780, -1080}},
-    {"Vol II ($biome_vault_frozen)", {-9950, 2900}},
-    {"Vol III ($biome_lavacave)", {3480, 1890}},
-    {"Vol IV ($biome_sandcave)", {10000, 2920}},
-    {"Vol V ($biome_wandcave)", {-4350, 3950}},
-    {"Vol VI ($biome_rainforest_dark)", {-3820, 10100}},
-    {"Vol VII ($biome_lava)", {4350, 880}},
-    {"Vol VIII ($biome_boss_victoryroom (Hell))", {-452, 16200}},
-    {"Vol IX ($biome_winter_caves)", {-9000, 14700}},
-    {"Vol X ($biome_wizardcave)", {10500, 16200}},
-}
 
 BOSSES = {
     {"$animal_boss_alchemist (High Alchemist)", {-4850, 860}},
@@ -34,31 +24,51 @@ BOSSES = {
     {"$animal_boss_robot (Mecha Kolmi)", {14080, 10900}},
     {"$animal_boss_dragon (Dragon)", {2200, 7450}},
     {"$animal_maggot_tiny (Slime Maggot; Tiny)", {14900, 18450}},
+    {"$animal_boss_meat (Meat Boss)", {6700, 8500}},
+    {"$animal_boss_sky", {7380, -4550}},
 }
 
-PLACES = {
+PLACES = setmetatable({
     {"Spawn", {227, -80}},
     {"Mountain Altar", {780, -1150}},
     {"$biome_lake", l = {
         {"Island", {-14211, 209}},
         {"Fishing Hut", {-12500, 200}},
     }},
-    {"Perk Removal Altar", {14196, 7551}}, -- FIXME: NG+ -11520, 13100
+    {"Perk Removal Altar",
+        {14196, 7551},
+        refine_fn = function(self)
+            local newgame_n = tonumber(SessionNumbersGetValue("NEW_GAME_PLUS_COUNT"))
+            if newgame_n ~= 0 then
+                return {-11520, 13100}
+            end
+            return self
+        end,
+
+    },
     {"Celestial Bodies", l = {
         {"Moon", {290, -25500}},
         {"Dark Moon", {350, 37500}},
         {"$perk_radar_moon", {16130, 3330}},
     }},
+    {"Temples", l = {
+        {"$biome_watchtower", {14075, -960}},
+        {"$biome_barren", {-5380, -5240}},          -- Barren Temple
+        {"$biome_boss_sky", {7380, -5050}},         -- Kivi Temple
+        {"$biome_darkness", {2600, -4670}},         -- Ominous Temple
+        {"$biome_potion_mimics", {-1820, -4640}},   -- Henkeva Temple
+    }},
     {"$animal_friend Caves", l = { -- see update_toveri_cave
-        {"Upper West", {-10500, 4350}},   -- fspot 4 lspot 1
-        {"Lower West", {-10900, 11550}},  -- fspot 5 lspot 2
-        {"Upper Center", {-4850, 4850}},  -- fspot 3 lspot 3
-        {"Lower Center", {-4850, 13000}}, -- fspot 6 lspot 4
-        {"Upper East", {3340, 5900}},     -- fspot 1 lspot 5
-        {"Lower East", {4350, 10000}},    -- fspot 2 lspot 6
+        {"Upper West", {-10500, 4350}},   -- fspot 4
+        {"Lower West", {-10900, 11550}},  -- fspot 5
+        {"Upper Center", {-4850, 4850}},  -- fspot 3
+        {"Lower Center", {-4850, 13000}}, -- fspot 6
+        {"Upper East", {3340, 5900}},     -- fspot 1
+        {"Lower East", {4350, 10000}},    -- fspot 2
     }},
     {"Spells", l = {
-        {"$action_all_spells", {-4830, 15009}},
+        {"$action_touch_piss", {9050, -1815}},      -- Outhouse
+        {"$action_all_spells", {-4830, 15009}},     -- End of Everything
         {"$action_rainbow_trail", {-14000, -2851}},
     }},
     {"The Cauldron", {3845, 5435}},
@@ -105,30 +115,45 @@ PLACES = {
     {"Shops", l = {
         {"Sky", {0, -13954}}, -- Verify
         {"Hell", {-3000, 28000}},
-        {"Hell 2", {-3000, 52600}}, -- Y2=Y1+246000
-        {"Hell 3", {-3000, 77200}}, -- Y3=Y2+246000
+        {"Hell 2", {-3000, 52600}}, -- Y+=246000
+        {"Hell 3", {-3000, 77200}},
+        {"Hell (mini)", {130, 24727}},
     }},
     {"$mat_gold", l = {
-        {"Western $biome_gold", {-20700, -3200}},
+        {"Western $biome_gold", {-20700, -3200}}, -- TODO: Verify
         {"Eastern $biome_gold", {15100, -3200}},
+        -- TODO: Western gold below the lava lake
     }},
     {"Special Wands", l = {
         {"$item_wand_experimental_1 (Gun)", {16130, 10000}},
         {"$item_ocarina (Ocarina)", {-10000, -6475}},
         {"$item_kantele", {-1630, -750}},
     }},
-}
 
---[[ Update the orb positions for NG+ ]]
-function update_orbs_ngplus()
-    local newgame_n = tonumber(SessionNumbersGetValue("NEW_GAME_PLUS_COUNT"))
-    local orb_map = orb_map_get() -- From utilities.lua
-    for idx, entry in ipairs(orb_map) do
-        local orb_name = ("Orb %d"):format(idx)
-        local world_x = entry[1] * 512 + 256
-        local world_y = entry[2] * 512 + 256
+    --[[ Example custom waypoint with filter and update functions ]]
+    {"Custom Waypoint (Example)",
+        {-1, -1}, -- default position
+        filter_fn = function(self) return false end, -- never display
+        update_fn = function(self) return 0, 0, 0 end, -- always origin
+    },
+}, {
+    __index = function(tbl, key)
+        if type(key) == "number" then
+            return rawget(tbl, key)
+        end
+        if type(key) == "string" then
+            for _, entry in ipairs(tbl) do
+                local label = entry[1]
+                if key == label then
+                    return entry
+                end
+            end
+            return nil
+        end
     end
-end
+})
+
+--[[ Private functions not intended for modders to use ]]
 
 --[[ Where is Toveri? Taken from data/scripts/biomes/friend_#.lua ]]
 function deduce_toveri_cave()
@@ -155,14 +180,95 @@ function update_toveri_cave(cave_idx) -- returns {x, y}
     error("Failed to find '$animal_friend Caves' entry")
 end
 
-return {
-    ORBS = ORBS,
-    BOSSES = BOSSES,
-    PLACES = PLACES,
-    Orbs = Orbs,
-    init_orb_list = init_orb_list,
-    Temples = Temples,
-    init_temple_list = init_temple_list,
-}
+--[[ Public API for mods wishing to add their own waypoints ]]
+
+function create_poi(args)
+    local poi = {args[1], args[2] or {nil, nil}}
+    if args.filter_fn and type(args.filter_fn) == "function" then
+        poi.filter_fn = args.filter_fn
+    end
+    if args.refine_fn and type(args.refine_fn) == "function" then
+        poi.refine_fn = args.refine_fn
+    end
+    if args.group and type(args.group) == "string" then
+        poi.group = args.group
+    end
+    return poi
+end
+
+--[[ True if the given POI looks good ]]
+function is_valid_poi(entry)
+    if type(entry) ~= "table" then return false end
+    if #entry ~= 2 then return false end
+    if type(entry[1]) ~= "string" then return false end
+    if type(entry[2]) ~= "table" then return false end
+    if #entry[2] ~= 2 and #entry[2] ~= 3 then return false end
+    if #entry[2] == 0 then
+        if not entry.filter_fn and not entry.refine_fn then
+            return false
+        end
+    end
+    return true
+end
+
+--[[ True if the two entries go to the same place ]]
+function compare_poi(entry1, entry2)
+    local pos1 = entry1[2]
+    local pos2 = entry2[2]
+    local px, py, pw = pos1[1], pos1[2], pos1[3] or 0
+    local ex, ey, ew = pos2[1], pos2[2], pos2[3] or 0
+    return px == ex and py == ey and pw == ew
+end
+
+--[[ True if the entry duplicates an existing one ]]
+function is_duplicate_poi(entry)
+    for _, place in ipairs(PLACES) do
+        if place.l then
+            for _, place2 in ipairs(place.l) do
+                if compare_poi(place2, entry) then
+                    return true
+                end
+            end
+        elseif compare_poi(place, entry) then
+            return true
+        end
+    end
+    return false
+end
+
+--[[ Add a boss to the end of the bosses list ]]
+function add_boss_entry(label, x, y)
+    table.insert(BOSSES, create_poi{label, {x, y}})
+end
+
+--[[ Add a place of interest to the end of the POI list ]]
+function add_places_entry(label, x, y)
+    table.insert(PLACES, create_poi{label, {x, y}})
+end
+
+--[[ Add a place of interest to the end of a POI group entry ]]
+function append_places_entry(group, label, x, y)
+    local poi = create_poi{label, x, y}
+    local place_entry = nil
+    for _, entry in ipairs(PLACES) do
+        if entry[1] == group then
+            place_entry = entry
+            break
+        end
+    end
+    if not place_entry then
+        -- Didn't find the mentioned place; add a new one
+        table.insert(PLACES, {group, l={poi}})
+    elseif not place_entry.l then
+        -- It exists, but isn't a list; make it one
+        local old_poi = {place_entry[1], place_entry[2]}
+        -- Copy over any custom stuff
+        for key, val in pairs(place_entry) do old_poi[key] = val end
+        place_entry.l = {old_poi, poi}
+        table.remove(place_entry, 2) -- remove old coord
+    else
+        table.insert(place_entry.l, poi)
+    end
+end
 
 -- vim: set ts=4 sts=4 sw=4 tw=79:

@@ -1,0 +1,34 @@
+BEWARE SPOILERS. YOU HAVE BEEN WARNED.
+
+"I need to visit a Holy Mountain." "Did I collapse that Holy Mountain?" "Did I get that orb?" "Where is that orb?"
+
+(Feb 14th release; does not have beta content).
+
+This mod lets you teleport to the following locations:
+Temples.
+Bosses.
+Orbs (yes, even the randomly-placed ones).
+Your current position, to the east.
+Your current position, to the west.
+Your current position, but back to the center.
+Places of interest: spells, items, wands, portals, portal rooms, the Friend cave, and more!
+
+Key features:
+* Teleport to any orb in any run. Feedback on whether or not you've collected that orb.
+* Teleport to any Holy Mountain. Feedback on whether or not the given mountain has collapsed (only works in New Game).
+* Teleport to any boss.
+* Teleport to the east or to the west.
+* Teleport to the the Friend, wherever he happens to be.
+* Teleport to any portal room.
+* Teleport to static spells, wands, and items.
+* Teleport to celestial bodies.
+* Teleport to spawn and the altar.
+* Teleport to the cauldron (requires Disable Mod Restrictions; you can download that via the official Discord).
+
+Known bugs and planned changes:
+* The "Vault" Holy Mountain teleports you into a wall. This will be fixed in a future release. Use "The Work" instead.
+* The "Snowy Depths" Holy Mountain occasionally teleports you just barely above the correct location. This isn't high enough to anger the Gods, but it is sometimes annoying.
+* Temple collapse feedback only works for New Game. Feedback for non-New Game temples is planned, but requires quite a bit of work.
+* No feedback for whether or not you've collected corrupted orbs. This is planned.
+
+Comments welcome!
