@@ -36,6 +36,9 @@ smallfolk = dofile_once("mods/kae_waypoint/files/lib/smallfolk.lua")
 --[[ ModSettingSet(CONF_SAVE_KEY, value) to add custom waypoints ]]
 CONF_SAVE_KEY = MOD_ID .. "." .. "_places"
 
+--[[ GlobslSetValue(FORCE_UPDATE_KEY, "1") to force update ]]
+FORCE_UPDATE_KEY = MOD_ID .. "_force_update"
+
 local imgui
 local g_messages = {}
 local g_force_update = true     -- trigger a POI recalculation
@@ -224,6 +227,8 @@ function load_waypoint(item)
 end
 
 --[[ Merge any locations defined via mod settings ]]
+-- TODO: Support {group=string}
+-- TODO: Deduplicate among new entries to prevent repeated additions
 function load_poi_config()
     local data = ModSettingGet(CONF_SAVE_KEY)
     local new_data = ModSettingGetNextValue(CONF_SAVE_KEY)
@@ -487,6 +492,7 @@ function _do_post_update()
         local window_flags = bit.bor(
             imgui.WindowFlags.NoFocusOnAppearing,
             imgui.WindowFlags.HorizontalScrollbar,
+            imgui.WindowFlags.NoNavFocus,
             imgui.WindowFlags.MenuBar)
 
         --[[ Determine if we need to update anything ]]
@@ -496,6 +502,11 @@ function _do_post_update()
                 g_save_ng, newgame_n, #Orbs, #Temples))
             g_force_update = true
             g_save_ng = newgame_n
+        end
+
+        if GlobalsGetValue(FORCE_UPDATE_KEY, "0") ~= "0" then
+            GlobalsSetValue(FORCE_UPDATE_KEY, "0")
+            g_force_update = true
         end
 
         --[[ If we need to update anything, update everything ]]

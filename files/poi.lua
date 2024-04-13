@@ -1,8 +1,9 @@
 -- Coordinates to and supporting functions for the orbs, bosses, and
 -- poits of interest.
---
--- This file is a work-in-progress.
---
+
+-- FIXME: Several different formats for modded POIs
+--  {label, pos, filter_fn=nil, refine_fn=nil}
+--  {label, pos, filter_fn=nil, refine_fn=nil, group=nil}
 
 --[[ Epilogue 2 locations:
 -- Eye Platform 5933 -4825

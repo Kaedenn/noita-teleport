@@ -1,15 +1,27 @@
 --[[ Provide mods the ability to add custom places ]]
 
+--[[ Build a string for the POI, for diagnostics ]]
+function _entry_to_string(entry)
+    local label = entry[1]
+    if entry.group then
+        label = ("%s/%s"):format(entry.group, label)
+    end
+    return label
+end
+
+--[[ Serialize an entries table ]]
 function _encode_places(entries)
     local smallfolk = dofile_once("mods/kae_waypoint/files/lib/smallfolk.lua")
     return smallfolk.dumps(entries)
 end
 
+--[[ Deserialize an entries table ]]
 function _decode_places(entries)
     local smallfolk = dofile_once("mods/kae_waypoint/files/lib/smallfolk.lua")
     return smallfolk.loads(entries)
 end
 
+--[[ Load the POI table from mod storage; returns {} if one isn't present ]]
 function _get_places()
     local key = "kae_waypoint._places"
     local data = ModSettingGet(key)
@@ -24,12 +36,14 @@ function _get_places()
     return {}
 end
 
+--[[ Save the POI table to mod storage ]]
 function _save_places(places)
     local key = "kae_waypoint._places"
     local data = _encode_places(places)
     ModSettingSetNextValue(key, data, false)
 end
 
+--[[ Validate the entry and return a well-formed POI ]]
 function _create_poi(entry)
     local error_msg = nil
     if type(entry) ~= "table" then
@@ -67,13 +81,21 @@ function _create_poi(entry)
     if type(entry.group) == "string" then
         result.group = entry.group
     end
-    if type(entry.filter_fn) == "function" then
-        result.filter_fn = entry.filter_fn
-    end
-    if type(entry.refine_fn) == "function" then
-        result.refine_fn = entry.refine_fn
-    end
     return result, nil
+end
+
+--[[ True if the given POI duplicates another POI. ]]
+function _is_duplicate_entry(entries, new_entry)
+    for _, entry in ipairs(entries) do
+        local ex, ey = entry[2][1], entry[2][2]
+        local ew = entry[2][3] or 0
+        local nx, ny = new_entry[2][1], new_entry[2][2]
+        local nw = new_entry[2][3] or 0
+        if ex == nx and ey == ny and ew == nw then
+            return true, entry
+        end
+    end
+    return false, nil
 end
 
 --[[
@@ -82,9 +104,6 @@ end
 -- add_places_entry({"My Place", {100, 100}})
 -- add_places_entry({"My Place", {100, 100, 1}})
 -- add_places_entry({"My Place", {100, 100}, group="My Places"})
--- add_places_entry({"My Place", {100, 100},
---      filter_fn = function(self) return true end,
---      refine_fn = function(self) return 200, 200 end})
 --
 -- Returns status:true, error_message:nil on success.
 -- Returns status:false, error_message:string on error.
@@ -93,6 +112,11 @@ function add_places_entry(entry)
     local entries = _get_places()
     local new_entry, error_msg = _create_poi(entry)
     if new_entry ~= nil then
+        local duplicates, duplicate = _is_duplicate_entry(entries, new_entry)
+        if duplicates then
+            return false, ("entry %s duplicates %s"):format(
+                new_entry[1], _entry_to_string(duplicate))
+        end
         table.insert(entries, new_entry)
         _save_places(entries)
         return true, nil
@@ -129,10 +153,54 @@ end
 function add_grouped_poi(group, name, x, y, world)
     local coord = {x, y}
     if world then coord = {x, y, world} end
-    local result, error_msg = add_places_entry({
-        name, coord, group=group
-    })
+    local result, error_msg = add_places_entry({name, coord, group=group})
     return result, error_msg
+end
+
+--[[ Remove all matching place-of-interest entries.
+--
+-- Returns true on success (at least one match).
+-- Returns false on error (zero matches).
+--]]
+function remove_poi(name)
+    local entries = _get_places()
+    local remains = {}
+    for _, entry in ipairs(entries) do
+        local label = entry[1]
+        if label ~= name then
+            table.insert(remains, entry)
+        end
+    end
+    if #remains ~= #entries then
+        _save_places(remains)
+        return true
+    end
+    return false
+end
+
+--[[ Remove all matching place-of-interest groups.
+--
+-- Returns true on success (at least one match).
+-- Returns false on error (zero matches).
+--]]
+function remove_poi_group(group)
+    local entries = _get_places()
+    local remains = {}
+    for _, entry in ipairs(entries) do
+        if not entry.group or entry.group ~= group then
+            table.insert(remains, entry)
+        end
+    end
+    if #remains ~= #entries then
+        _save_places(remains)
+        return true
+    end
+    return false
+end
+
+--[[ Force an update ]]
+function force_places_update()
+    GlobalsSetValue("kae_waypoint_force_update", "1")
 end
 
 -- vim: set ts=4 sts=4 sw=4 tw=79:
