@@ -2,33 +2,51 @@ BEWARE SPOILERS. YOU HAVE BEEN WARNED.
 
 "I need to visit a Holy Mountain." "Did I collapse that Holy Mountain?" "Did I get that orb?" "Where is that orb?"
 
-(Feb 14th release; does not have beta content).
+This mod does require Noita-Dear-ImGui, which you can obtain here:
+https://github.com/dextercd/Noita-Dear-ImGui/releases
+Note that Noita-Dear-ImGui must be *above* this mod in the load order.
+
+"Mod-checked" content (places disabled when playing with mods) can be reactivated by installing Disable Mod Restrictions from here:
+https://modworkshop.net/mod/38530
+
+Epilogue 2 update! Locations added by Epilogue 2 are now available. Leave a comment below if you have suggestions for more locations.
 
 This mod lets you teleport to the following locations:
-Temples.
-Bosses.
-Orbs (yes, even the randomly-placed ones).
-Your current position, to the east.
-Your current position, to the west.
-Your current position, but back to the center.
-Places of interest: spells, items, wands, portals, portal rooms, the Friend cave, and more!
+* Temples. Includes feedback on whether or not a temple has been collapsed (NG only).
+* Bosses. All of them, including Toveri.
+* Orbs (yes, even the randomly-placed ones).
+* Your current position, to the east.
+* Your current position, to the west.
+* Your current position, but back to the center.
+* Places of interest: spells, items, wands, portals, portal rooms, the Friend cave, and more!
 
 Key features:
-* Teleport to any orb in any run. Feedback on whether or not you've collected that orb.
-* Teleport to any Holy Mountain. Feedback on whether or not the given mountain has collapsed (only works in New Game).
+* Ability to mark a location for later return (click "Get Position").
+* Return to the most recent position from which you teleported.
+* Teleport to any non-corrupted orb in both NG and NG+. Feedback on whether or not you've collected that orb. Use the East/West buttons to collect corrupted orbs.
+* Teleport to any Holy Mountain. Feedback on whether or not the given mountain has collapsed (only works in NG).
 * Teleport to any boss.
-* Teleport to the east or to the west.
+* Teleport to your location to the east or to the west.
 * Teleport to the the Friend, wherever he happens to be.
 * Teleport to any portal room.
 * Teleport to static spells, wands, and items.
 * Teleport to celestial bodies.
-* Teleport to spawn and the altar.
+* Teleport to spawn and the mountain altar.
 * Teleport to the cauldron (requires Disable Mod Restrictions; you can download that via the official Discord).
 
-Known bugs and planned changes:
-* The "Vault" Holy Mountain teleports you into a wall. This will be fixed in a future release. Use "The Work" instead.
-* The "Snowy Depths" Holy Mountain occasionally teleports you just barely above the correct location. This isn't high enough to anger the Gods, but it is sometimes annoying.
-* Temple collapse feedback only works for New Game. Feedback for non-New Game temples is planned, but requires quite a bit of work.
-* No feedback for whether or not you've collected corrupted orbs. This is planned.
+Planned features:
+* Eye locations! You will be able to teleport to the various mysterious eye glyphs (requires Disable Mod Restrictions).
+* Feedback for whether or not you've collected corrupted orbs.
+* Ability for mods to add their own teleport destinations.
+* Ability for teleport destinations to have additional logic (ie. only enable in certain situations and ability to refine target coordinates).
 
-Comments welcome!
+Known bugs:
+* The "Vault" Holy Mountain occasionally teleports you just barely above the correct location. This isn't high enough to anger the Gods, but it is sometimes slightly annoying. Just wiggling Mina (a+w+d spam) gets you into the mountain.
+* Temple collapse feedback only works for New Game. Feedback for non-New Game temples is planned, but requires quite a bit of work.
+
+Known hazards:
+Teleporting to too many parallel worlds will crash the game due to resource issues. In my personal experience (Linux, using Proton), if you're only getting perks in Holy Mountains, you can teleport to about 10 total worlds (five east, five west) before a crash is likely. Be sure to perform mod restarts (Mods -> Restart with enabled mods active) frequently!
+
+Want to contribute? Found a bug? Curious how the mod works? https://github.com/Kaedenn/noita-teleport
+
+Comments and suggestions welcome!
