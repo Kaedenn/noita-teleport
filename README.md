@@ -14,7 +14,9 @@ Download this repository into your Noita/mods folder.
 
 # Custom locations
 
-Mods can define their own custom teleport locations by appending code to the `mods/kae_teleport/files/poi.lua` file. For example:
+Mods can define their own custom teleport locations by appending code to the `mods/kae_teleport/files/poi.lua` file.
+
+The structure and API are still being designed. Stay tuned!
 
 ```lua
 

@@ -61,11 +61,9 @@ function compare_msg(msg1, msg2)
         return msg == msg2
     end
     if type(msg1) == "table" and type(msg2) == "table" then
-        if #msg1 ~= #msg2 then return false end
-        for idx = 1, #msg1 do
-            if msg1[idx] ~= msg2[idx] then return false end
-        end
-        return true
+        local line1 = table.concat(msg1, " ")
+        local line2 = table.concat(msg2, " ")
+        return line1 == line2
     end
     return tostring(msg1) == tostring(msg2)
 end
@@ -218,6 +216,7 @@ function load_waypoint(item)
         return
     end
 
+    -- Load the values into the input variables
     input_x = target_x
     input_y = target_y
     input_world = target_world
@@ -382,6 +381,11 @@ function _build_gui()
     imgui.SetNextItemWidth(100)
     ret, input_world = imgui.InputInt("World", input_world)
     ret, input_relative = imgui.Checkbox("Relative", input_relative)
+
+    imgui.SameLine()
+    if imgui.SmallButton("Clear") then
+        g_messages = {}
+    end
 
     if imgui.Button("Get Position") then
         local plr_x, plr_y = get_player_pos(player)

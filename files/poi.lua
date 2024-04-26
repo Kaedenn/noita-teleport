@@ -5,8 +5,9 @@
 --  {label, pos, filter_fn=nil, refine_fn=nil}
 --  {label, pos, filter_fn=nil, refine_fn=nil, group=nil}
 
---[[ Epilogue 2 locations:
+--[[ Extra locations:
 -- Eye Platform 5933 -4825
+-- Hell Shop (Mimicium Temple copy?) -1500 43600 (verify NG+)
 --]]
 
 dofile_once("data/scripts/lib/utilities.lua")
@@ -114,21 +115,27 @@ PLACES = setmetatable({
         {"$item_chest_dark", {3875, 15600}},
     }},
     {"Shops", l = {
-        {"Sky", {0, -13954}}, -- Verify
         {"Hell", {-3000, 28000}},
-        {"Hell 2", {-3000, 52600}}, -- Y+=246000
-        {"Hell 3", {-3000, 77200}},
-        {"Hell (mini)", {130, 24727}},
-    }},
-    {"$mat_gold", l = {
-        {"Western $biome_gold", {-20700, -3200}}, -- TODO: Verify
-        {"Eastern $biome_gold", {15100, -3200}},
-        -- TODO: Western gold below the lava lake
+        {"Hell +1", {-3000, 52600}}, -- Y+=246000
+        {"Hell +2", {-3000, 77200}},
+        {"Hell (Mimic)", {-1750, 19400}}, -- Verify
+        {"Hell (Kivi)", {2775, 19550}}, -- Verify
+        {"Hell (small)", {-3310, 35800}}, -- Verify
+        {"Hell (mini)", {130, 24727}}, -- Verify
+        {"Sky", {-3300, -21000}}, -- Verify
+        {"Sky (Mimic)", {-1750, -29730}}, -- Verify
+        {"Sky (Kivi)", {2775, -29570}}, -- Verify
+        {"Sky (small)", {3310, -13300}}, -- Verify
     }},
     {"Special Wands", l = {
         {"$item_wand_experimental_1 (Gun)", {16130, 10000}},
         {"$item_ocarina (Ocarina)", {-10000, -6475}},
         {"$item_kantele", {-1630, -750}},
+    }},
+    {"Biomes", l = {
+        {"Western $biome_gold", {-14080, 16640}}, -- biome -27.5 -32.5
+        {"Eastern $biome_gold", {15100, -3200}},
+        {"Infinite $biome_robobase", {-16640, 16896}}, -- biome -32.5 33
     }},
 
     --[[ Example custom waypoint with filter and update functions ]]
