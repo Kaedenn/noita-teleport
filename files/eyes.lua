@@ -102,6 +102,7 @@ local function calculate_eye_message_positions(seed, current_pw)
             goto continue
         end
 
+        local found = false
         for attempts = 0, 999 do
             local y = mt127773_next(temp)
             -- 4.656612875e-10 is roughly 1/0x7fffffff
@@ -113,8 +114,12 @@ local function calculate_eye_message_positions(seed, current_pw)
             if has_cave_background(x, y) then
                 local coords = convert_chunk_coords(x, y, pw_index)
                 table.insert(positions, coords)
+                found = true
                 break
             end
+        end
+        if not found then
+            table.insert(positions, {nil, nil})
         end
 
         ::continue::
@@ -144,16 +149,21 @@ function get_eye_locations(seed)
     local positions = calculate_eye_message_positions(seed, 1)
     local results = {}
     for idx, pos in ipairs(positions) do
-        table.insert(results, {"east", pos[1], pos[2]})
-        if idx < 4 then
-            local adjust = 2 * biome_width * BIOME_CELL_SIZE
-            table.insert(results, {"west", pos[1] - adjust, pos[2]})
+        local xpos, ypos = pos[1], pos[2]
+        if xpos == nil and ypos == nil then
+            table.insert(results, {"invalid", 0, 0})
+        else
+            table.insert(results, {"east", pos[1], pos[2]})
+            if idx <= 4 then
+                local adjust = 2 * biome_width * BIOME_CELL_SIZE
+                table.insert(results, {"west", pos[1] - adjust, pos[2]})
+            end
         end
     end
     return results
 end
 
--- Testing
+--[[ Testing
 if _G.lualib then
     local results
     if #arg > 0 then
@@ -169,5 +179,6 @@ if _G.lualib then
 
     os.exit()
 end
+]]
 
 -- vim: set ts=4 sts=4 sw=4:

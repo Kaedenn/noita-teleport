@@ -1,5 +1,5 @@
 -- Coordinates to and supporting functions for the orbs, bosses, and
--- poits of interest.
+-- points of interest.
 
 -- FIXME: Several different formats for modded POIs
 --  {label, pos, filter_fn=nil, refine_fn=nil}
@@ -27,7 +27,7 @@ BOSSES = {
     {"$animal_boss_dragon (Dragon)", {2200, 7450}},
     {"$animal_maggot_tiny (Slime Maggot; Tiny)", {14900, 18450}},
     {"$animal_boss_meat (Meat Boss)", {6700, 8500}},
-    {"$animal_boss_sky", {7380, -4550}},
+    {"$animal_boss_sky (Rock Boss)", {7380, -4550}},
 }
 
 PLACES = setmetatable({
@@ -45,9 +45,7 @@ PLACES = setmetatable({
                 return {-11520, 13100}
             end
             return self
-        end,
-
-    },
+        end},
     {"Celestial Bodies", l = {
         {"Moon", {290, -25500}},
         {"Dark Moon", {350, 37500}},
@@ -73,7 +71,18 @@ PLACES = setmetatable({
         {"$action_all_spells", {-4830, 15009}},     -- End of Everything
         {"$action_rainbow_trail", {-14000, -2851}},
     }},
-    {"The Cauldron", {3845, 5435}},
+    {"The Cauldron", {3845, 5435},
+        label_fn = function()
+            -- TODO: check cauldron bit
+            return "The Cauldron"
+        end,
+        filter_fn = function()
+            if ModIsEnabled("disable-mod-restrictions") then
+                -- TODO: check Cauldron flag in ModSettings
+                return true
+            end
+            return false
+        end},
     {"Karl's Racetrack", {3300, 2350}},
     {"Avarice Diamond", {9400, 4300}},
     {"Portals & Portal Rooms", l = {
@@ -137,6 +146,7 @@ PLACES = setmetatable({
         {"Eastern $biome_gold", {15100, -3200}},
         {"Infinite $biome_robobase", {-16640, 16896}}, -- biome -32.5 33
     }},
+    {"Eye Glyphs", l = { }},
 
     --[[ Example custom waypoint with filter and update functions ]]
     {"Custom Waypoint (Example)",
@@ -188,10 +198,23 @@ function update_toveri_cave(cave_idx) -- returns {x, y}
     error("Failed to find '$animal_friend Caves' entry")
 end
 
+--[[ Update the locations of the Eye Glyphs ]]
+function update_eye_locations()
+    dofile("mods/kae_waypoint/files/eyes.lua")
+    PLACES["Eye Glyphs"].l = {}
+    for idx, entry in ipairs(get_eye_locations(nil)) do
+        local label = ("%s %d"):format(entry[1], math.floor((idx+1)/2))
+        table.insert(PLACES["Eye Glyphs"].l, {label, {entry[2], entry[3]}})
+    end
+end
+
 --[[ Public API for mods wishing to add their own waypoints ]]
 
 function create_poi(args)
     local poi = {args[1], args[2] or {nil, nil}}
+    if args.label_fn and type(args.label_fn) == "function" then
+        poi.label_fn = args.label_fn
+    end
     if args.filter_fn and type(args.filter_fn) == "function" then
         poi.filter_fn = args.filter_fn
     end

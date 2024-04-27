@@ -256,8 +256,19 @@ function load_poi_config()
 end
 
 function _add_menu_item(item)
-    local label_raw = item[1] or error(("malformed value %s"):format(item))
+    local label_raw = item[1]
+    if type(item.label_fn) == "function" then
+        label_raw = item.label_fn(item)
+    end
+
     local label = I18N.localize(label_raw, true)
+
+    if type(item.filter_fn) == "function" then
+        if not item.filter_fn(item) then
+            return
+        end
+    end
+
     if item.l ~= nil then
         -- It's a nested item
         if imgui.BeginMenu(label) then
@@ -269,15 +280,6 @@ function _add_menu_item(item)
     else
         -- Nested items can't have coordinates of their own
         local pos = item[2] or {}
-
-        -- Allow for entries to have custom logic (see README.md)
-        if type(item.filter_fn) == "function" then
-            if not item.filter_fn(item) then
-                --debug_msg(("Item %s requested filtering"):format(label_raw))
-                return
-            end
-        end
-
         if #pos < 2 then
             label = label .. " [TODO]"
         end
@@ -467,7 +469,8 @@ function _draw_line(line)
     end
 
     if line.pos and line.pos.x and line.pos.y then
-        if imgui.SmallButton("Return") then
+        local bid = ("%d_%d"):format(line.pos.x, line.pos.y)
+        if imgui.SmallButton("Return###" .. bid) then
             debug_msg(("Return %s"):format(smallfolk.dumps(line.pos)))
             local player = line.pos.player or get_players()[1]
             local xpos, ypos = line.pos.x, line.pos.y
@@ -521,6 +524,8 @@ function _do_post_update()
             Temples = {}
             init_temple_list(Temples)
             debug_msg("Temples updated")
+            update_eye_locations()
+            debug_msg("Eye Glyph locations updated")
             g_force_update = false
         end
 
