@@ -32,10 +32,10 @@ Key features:
 * Teleport to static spells, wands, and items.
 * Teleport to celestial bodies.
 * Teleport to spawn and the mountain altar.
-* Teleport to the cauldron (requires Disable Mod Restrictions; you can download that via the official Discord).
+* Teleport to the cauldron (requires Disable Mod Restrictions).
+* Teleport to the Eyes. This mod automatically locates all nine eye glyph locations! This also requires Disable Mod Restrictions.
 
 Planned features:
-* Eye locations! You will be able to teleport to the various mysterious eye glyphs (requires Disable Mod Restrictions).
 * Feedback for whether or not you've collected corrupted orbs.
 * Ability for mods to add their own teleport destinations.
 * Ability for teleport destinations to have additional logic (ie. only enable in certain situations and ability to refine target coordinates).

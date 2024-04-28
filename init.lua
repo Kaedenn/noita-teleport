@@ -573,6 +573,10 @@ function OnPlayerSpawned(player_entity)
 end
 
 function OnWorldPostUpdate()
+    if imgui == nil then
+        OnModPostInit()
+    end
+
     if imgui ~= nil then
         local status, result = xpcall(_do_post_update, on_error)
         if not status then
