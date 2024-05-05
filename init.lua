@@ -55,7 +55,7 @@ local save_x, save_y, save_world = nil, nil, nil
 --[[ Do the two messages match? ]]
 function compare_msg(msg1, msg2)
     if type(msg1) == "string" and type(msg2) == "string" then
-        return msg == msg2
+        return msg1 == msg2
     end
     if type(msg1) == "table" and type(msg2) == "table" then
         local line1 = table.concat(msg1, " ")
