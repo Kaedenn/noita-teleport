@@ -109,6 +109,7 @@ compare_mods() { # local remote
   diff_args+=(-x "$(basename "$0")") # because this script isn't required
   diff_args+=(-x "*.tar.gz")         # because backups
   diff_args+=(-x "ref")              # remove reference items
+  diff_args+=(-x "build")            # remove compilation/bundling stuff
   if [[ -z "${DEBUG:-}" ]]; then
     diff_args+=("-q")
   fi

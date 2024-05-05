@@ -6,8 +6,10 @@ ref/
 .*.swo
 
 # Artifacts
-build/*.zip
-backups/
+build/*
+!build/*.sh
+!build/*.txt
+!build/*.vdf
 
 # Compiled Lua sources
 luac.out
