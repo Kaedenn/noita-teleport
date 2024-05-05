@@ -5,6 +5,7 @@
 --  Bosses
 --  Places of interest
 --  Temples
+--  Hidden eye glyphs (with Disable Mod Restrictions)
 --
 -- Key features include:
 --  Correct Orb locations for NG and NG+
@@ -15,12 +16,7 @@
 --]]
 
 --[[ TODO:
--- History of warps for undo/redo
---
--- Allow waypoint destinations to define the following functions:
---  refine(target_x, target_y)
---  get_label()
---  on_teleport(...)
+-- Allow for selectively removing modded places.
 --
 -- Allow teleporting by clicking on a biome map
 --  BiomeMapConvertPixelFromUintToInt to get color, possibly?
@@ -45,6 +41,7 @@ local g_force_update = true     -- trigger a POI recalculation
 local g_toveri_updated = false  -- did we determine Toveri's location?
 local g_teleport_now = false    -- don't just load the POI; teleport to it
 local g_save_ng = 0             -- cached NG+ count
+local g_extra_poi = {}          -- places defined by other mods
 
 --[[ Inputs to the main GUI. Global so other functions can update them. ]]
 local input_x = 0
@@ -248,11 +245,38 @@ function load_poi_config()
                 debug_msg(("Duplicate entry %s"):format(smallfolk.dumps(entry)))
             else
                 debug_msg(("Adding entry %s"):format(smallfolk.dumps(entry)))
-                table.insert(new_places, create_poi(entry))
+                _add_poi_to(new_places, entry)
             end
         end
     end
     return new_places
+end
+
+--[[ Add a POI to the given table ]]
+function _add_poi_to(places, entry)
+    local new_poi = create_poi(entry)
+
+    if entry.group then
+        -- Determine if the group already exists
+        local found_poi = false
+        for idx, poi in ipairs(places) do
+            if poi[1] == entry.group then
+                found_poi = true
+                if not poi.l then
+                    -- It's a lone POI; convert it to a group
+                    poi.l = {{poi[1], poi[2]}}
+                end
+                table.insert(poi.l, new_poi)
+                break
+            end
+        end
+        if not found_poi then
+            -- It's a new group
+            table.insert(places, {entry.group, l={new_poi}})
+        end
+    else
+        table.insert(places, new_poi)
+    end
 end
 
 function _add_menu_item(item)
@@ -309,8 +333,10 @@ function _build_menu_bar_gui()
             if imgui.MenuItem(mstr .. " Debugging") then
                 KConf.SETTINGS:toggle("debug")
             end
-            if imgui.MenuItem("Clear") then
-                g_messages = {}
+            if imgui.MenuItem("Delete Modded Places") then
+                ModSettingSetNextValue(CONF_SAVE_KEY, "{}", false)
+                add_msg({"Deleted all locations added by mods", color={1, 0.25, 0.25}})
+                g_force_update = true
             end
             if imgui.MenuItem("Close") then
                 KConf.SETTINGS:set("enable", false)
@@ -340,10 +366,15 @@ function _build_menu_bar_gui()
             for _, place in ipairs(PLACES) do
                 _add_menu_item(place)
             end
-            for _, place in ipairs(load_poi_config()) do
-                _add_menu_item(place)
-            end
             imgui.EndMenu()
+        end
+        if #g_extra_poi > 0 then
+            if imgui.BeginMenu("Mod Places") then
+                for _, place in ipairs(g_extra_poi) do
+                    _add_menu_item(place)
+                end
+                imgui.EndMenu()
+            end
         end
         imgui.EndMenuBar()
     end
@@ -465,6 +496,9 @@ function _draw_line(line)
     end
 
     if line.color then
+        if type(line.color) == "string" then
+            line.color = lookup_color(line.color)
+        end
         imgui.PushStyleColor(imgui.Col.Text, unpack(line.color))
     end
 
@@ -526,6 +560,8 @@ function _do_post_update()
             debug_msg("Temples updated")
             update_eye_locations()
             debug_msg("Eye Glyph locations updated")
+            g_extra_poi = load_poi_config()
+            debug_msg("Loaded extra locations")
             g_force_update = false
         end
 

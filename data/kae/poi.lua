@@ -41,6 +41,7 @@ function _save_places(places)
     local key = "kae_waypoint._places"
     local data = _encode_places(places)
     ModSettingSetNextValue(key, data, false)
+    force_places_update()
 end
 
 --[[ Validate the entry and return a well-formed POI ]]

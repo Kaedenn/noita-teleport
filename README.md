@@ -2,58 +2,54 @@
 
 This mod provides numerous teleport destinations.
 
-Comes prebuilt with numerous predefined destinations, including all orbs, all bosses, and the holy mountains.
+Comes pre-built with numerous predefined destinations, including all orbs, all bosses, and the holy mountains.
 
 # Dependencies
 
-This mod requires `Noita-Dear-ImGui`, which _must_ be above this mod in the load order. This mod can be found by searching the Noita Mod Workshop (not Steam Workshop!) for "Noita-Dear-ImGui". It's also downloadable via the Noita discord.
+This mod requires _Noita-Dear-ImGui_, which _must_ be above this mod in the load order. This mod can be downloaded via the following link: [https://github.com/dextercd/Noita-Dear-ImGui/releases](Noita-Dear-ImGui). Download and extract the archive into your Noita/mods folder.
+
+This mod leverages (but does not require) _Disable Mod Restrictions_, which you can find via the following link: [https://modworkshop.net/mod/38530](Disable Mod Restrictions). Download and extract the archive into your Noita/mods folder. Note that _Disable Mod Restrictions_ needs to be updated every time a new version of Noita is released.
 
 # Installation
 
-Download this repository into your Noita/mods folder.
+If you don't have _Noita-Dear-ImGui_, download it [https://github.com/dextercd/Noita-Dear-ImGui/releases](by clicking this link) and extract the archive into your Noita/mods folder.
+
+Next, download this repository [https://github.com/Kaedenn/noita-teleport/archive/refs/heads/main.zip](by clicking this link) and extract the archive into your Noita/mods folder.
+
+Because _Noita-Dear-ImGui_ is a mod with compiled code, it requires enabling the unsafe mods option. This is also why it's not available via the Steam workshop. Also, _Noita-Dear-ImGui_ needs to be placed _above_ this mod in the mod list so that it gets loaded before this mod.
+
+# Planned features
+* Custom locations (see below)
+* GUI fallback if _Noita-Dear-ImGui_ isn't installed or isn't available (help wanted!).
 
 # Custom locations
 
-Mods can define their own custom teleport locations by appending code to the `mods/kae_teleport/files/poi.lua` file.
-
-The structure and API are still being designed. Stay tuned!
+Mods can add their own custom teleport locations by leveraging the public API. Here's an example:
 
 ```lua
+function OnWorldInitialized()
+    dofile_once("mods/kae_waypoint/data/kae/poi.lua")
+    add_poi("My Special Location", 1000, 2000)
 
--- Simple addition for static coordinates
-add_boss_entry("My New Boss", {2000, 4000})
-add_places_entry("My New Place", {2000, 4000})
-append_places_entry("Portals", "My New Portal", {2000, 4000})
-
--- Directly, allowing for custom behavior:
-table.insert(PLACES, {
-  -- item[1] is the name (label) of your waypoint
-  "My Custom Waypoint",
-  -- item[2] is the location, either {x, y} or {x, y, world}
-  {2000, 4000, 0},
-
-  --[[ Filter: return false to hide this waypoint.
-  -- Called when building the menu. ]]
-  filter_fn = function(self)
-    local newgame_n = tonumber(SessionNumbersGetValue("NEW_GAME_PLUS_COUNT"))
-    if newgame_n == 0 then
-      return true -- only display in New Game, not NG+
-    end
-    return false
-  end,
-
-  --[[ Refine: update the position to a more accurate one.
-  -- Return nil, nil to use the original location.
-  -- Called when invoking the teleport. ]]
-  refine_fn = function(self)
-    local pos = self[2]
-    return {pos[1], pos[2] - 512} -- go up by one chunk
-  end,
-})
+    add_grouped_poi("My Locations", "Location One", 2000, 2000)
+    add_grouped_poi("My Locations", "Location Two", 2000, 4000)
+    add_grouped_poi("My Locations", "Location Three", 2000, 4000, 1) -- East 1
+end
 ```
 
-# TODO
+## Custom location API
 
-1. Document i18n support for labels
-2. Add proper undo/redo support
+The `mods/kae_waypoint/data/kae/poi.lua` file exports a few functions for adding (or removing) custom locations.
+
+For both `add` functions, `x` and `y` must be numbers. `world`, if specified, must be a number with `0` denoting the center world, positive numbers denoting East worlds, and negative numbers denoting West worlds.
+
+* `add_poi(name, x, y, world=nil) -> boolean`
+  Add a single item to the `Places` menu. Returns `true` on success, `false` on error or if a location with the same target location already exists.
+* `add_grouped_poi(group, x, y, world=nil) -> boolean`
+  Add a grouped item to the `Places` menu. Returns `true` on success, `false` on error or if a location with the same target location already exists.
+* `remove_poi(name) -> boolean`
+  Remove all top-level entries having the given name. Returns `true` if at least one such entry was found, `false` otherwise.
+* `remove_poi_group(group) -> boolean`
+  Remove all entries belonging to the named group. Returns `true` if at least one such entry was found, `false` otherwise.
+
 
