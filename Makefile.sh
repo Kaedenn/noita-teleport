@@ -1,4 +1,4 @@
-#!/bin/bash -u
+#!/bin/bash
 
 # Trivial "Makefile-like" script for deploying this mod
 
@@ -277,7 +277,10 @@ if [[ "$ACTION" == "cp" ]]; then
 
   info "Copying . to $DEST_DIR"
   # Deploy this mod to the destination directory
-  if dry checked rm -r "$DEST_DIR"; then
+  if [[ -d "$DEST_DIR" ]]; then
+    dry checked rm -r "$DEST_DIR"
+  fi
+  if [[ $? -eq 0 ]]; then
     mkdir "$DEST_DIR" 2>/dev/null
     if checked deploy "$DEST_DIR"; then
       info "Done"
