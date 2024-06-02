@@ -6,7 +6,8 @@
 --  {label, pos, filter_fn=nil, refine_fn=nil, group=nil}
 
 --[[ Extra locations:
--- Eye Platform 5933 -4825
+-- Eye Platform (Sky) 5933 -4825
+-- Eye Platform (Power Plant) 13056 10023
 -- Hell Shop (Mimicium Temple copy?) -1500 43600 (verify NG+)
 --]]
 

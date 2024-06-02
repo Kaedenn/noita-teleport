@@ -85,14 +85,26 @@ function _create_poi(entry)
     return result, nil
 end
 
---[[ True if the given POI duplicates another POI. ]]
+--[[ True if the two POIs go to the same place
+-- world=nil will match all locations regardless of world.
+--]]
+function _is_same_location(entry1, entry2)
+    local ex, ey = entry1[2][1], entry1[2][2]
+    local ew = entry1[2][3]
+    local nx, ny = entry2[2][1], entry2[2][2]
+    local nw = entry2[2][3]
+    if ex == nx and ey == ny then
+        if ew == nil or nw == nil or ew == nw then
+            return true
+        end
+    end
+    return false
+end
+
+--[[ True if the given POI duplicates another POI ]]
 function _is_duplicate_entry(entries, new_entry)
     for _, entry in ipairs(entries) do
-        local ex, ey = entry[2][1], entry[2][2]
-        local ew = entry[2][3] or 0
-        local nx, ny = new_entry[2][1], new_entry[2][2]
-        local nw = new_entry[2][3] or 0
-        if ex == nx and ey == ny and ew == nw then
+        if _is_same_location(entry, new_entry) then
             return true, entry
         end
     end
@@ -163,7 +175,7 @@ end
 -- Returns true on success (at least one match).
 -- Returns false on error (zero matches).
 --]]
-function remove_poi(name)
+function remove_poi(name) -- TODO: support table labels
     local entries = _get_places()
     local remains = {}
     for _, entry in ipairs(entries) do
@@ -189,6 +201,25 @@ function remove_poi_group(group)
     local remains = {}
     for _, entry in ipairs(entries) do
         if not entry.group or entry.group ~= group then
+            table.insert(remains, entry)
+        end
+    end
+    if #remains ~= #entries then
+        _save_places(remains)
+        return true
+    end
+    return false
+end
+
+--[[ Remove any POI with the given (exact!) teleport destination ]]
+function remove_poi_at(x, y, world)
+    local coord = {x, y}
+    if world then coord = {x, y, world} end
+    local temp_poi = {nil, coord}
+    local entries = _get_places()
+    local remains = {}
+    for idx, entry in ipairs(entries) do
+        if not _is_same_location(temp_poi, entry) then
             table.insert(remains, entry)
         end
     end
