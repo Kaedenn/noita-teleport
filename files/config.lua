@@ -10,7 +10,11 @@ SETTINGS = setmetatable({
     },
     SHOW_CURRENT_POS = { -- should we display the current player position?
         name = "show_current_pos",
-        default = false,
+        default = true,
+    },
+    SHOW_CURRENT_BIOME = { -- should we display the current biome?
+        name = "show_current_biome",
+        default = true,
     },
     QUICK_TELEPORT = {  -- should we teleport immediately after selecting a POI?
         name = "quick_teleport",

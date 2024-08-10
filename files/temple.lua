@@ -124,4 +124,37 @@ function init_temple_list(temple_list)
     table.insert(temple_list, Temple:new(FINAL_TEMPLE))
 end
 
+function player_in_temple()
+    local player = get_players()[1]
+    local px, py = EntityGetTransform(player)
+    if not px or not py then return false end
+
+    local entid = EntityGetClosestWithTag(px, py, "workshop_aabb")
+    if not entid then return false end
+
+    local ex, ey = EntityGetTransform(entid)
+    if not ex or not ey then
+        print_error(("workshop_aabb entity %d lacks position"):format(entid))
+        return false
+    end
+
+    local comp = EntityGetFirstComponent(entid, "HitboxComponent")
+    if not comp then
+        print_error(("workshop_aabb entity %d lacks hitbox"):format(entid))
+        return false
+    end
+
+    local aabb_min_x = ComponentGetValue2(comp, "aabb_min_x")
+    local aabb_max_x = ComponentGetValue2(comp, "aabb_max_x")
+    local aabb_min_y = ComponentGetValue2(comp, "aabb_min_y")
+    local aabb_max_y = ComponentGetValue2(comp, "aabb_max_y")
+
+    if px >= ex + aabb_min_x and px <= ex + aabb_max_x then
+        if py >= ey + aabb_min_y and py <= ey + aabb_max_y then
+            return true
+        end
+    end
+    return false
+end
+
 -- vim: set ts=4 sts=4 sw=4 tw=79:

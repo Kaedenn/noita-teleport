@@ -12,10 +12,11 @@
 --  Correct identification of Toveri's cave
 --  Identification of collapsed temples (only works in NG)
 --  Live tracking of player position
---
 --]]
 
 --[[ TODO:
+-- Provide button to "leave current temple" when inside a temple.
+--
 -- Allow for selectively removing modded places.
 --
 -- Allow teleporting by clicking on a biome map
@@ -425,7 +426,8 @@ function _build_gui()
         input_x, input_y, input_world = pos_abs_to_rel(plr_x, plr_y)
         add_msg({
             ("Got %d, %d, world %d"):format(input_x, input_y, input_world),
-            pos = {x=input_x, y=input_y, world=input_world}
+            pos = {x=input_x, y=input_y, world=input_world},
+            biome = BiomeMapGetName(input_x, input_y),
         })
     end
 
@@ -477,11 +479,19 @@ function _build_gui()
         end
     end
 
+    -- Ensure the controls are visible
+    if not imgui.IsWindowCollapsed() then
+        local wix, wiy = imgui.GetWindowSize()
+        local avx, avy = imgui.GetContentRegionAvail()
+        if avy < 0 then
+            imgui.SetWindowSize(wix, wiy-avy)
+        end
+    end
+
     for _, entry in ipairs(g_messages) do
         _draw_line(entry)
     end
     return true
-
 end
 
 function _draw_line(line)
@@ -517,6 +527,11 @@ function _draw_line(line)
             }
         end
         imgui.SameLine()
+        local biome = line.biome or BiomeMapGetName(line.pos.x, line.pos.y)
+        if biome ~= "_EMPTY_" then
+            imgui.Text(("[%s]"):format(GameTextGet(biome)))
+            imgui.SameLine()
+        end
     end
     for idx, token in ipairs(line) do
         if idx ~= 1 then imgui.SameLine() end
@@ -583,7 +598,17 @@ function _do_post_update()
                 if plrw ~= 0 then
                     pos_str = ("%d, %d world %d"):format(plrx, plry, plrw)
                 end
-                title = ("Teleport: %s"):format(pos_str)
+                title = ("%s: %s"):format(title, pos_str)
+            end
+        end
+        if KConf.SETTINGS:get("show_current_biome") then
+            local player = get_players()[1]
+            local plrx, plry = get_player_pos(player)
+            if plrx ~= nil and plry ~= nil then
+                local biome = BiomeMapGetName(plrx, plry)
+                if biome ~= "_EMPTY_" then
+                    title = ("%s: %s"):format(title, GameTextGet(biome))
+                end
             end
         end
         if imgui.Begin(("%s###Teleport"):format(title), nil, window_flags) then

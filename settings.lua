@@ -23,14 +23,21 @@ mod_settings = {
         id = "show_current_pos",
         ui_name = "Show Position",
         ui_description = "Display the player's current position",
-        ui_default = false,
+        value_default = true,
+        scope = MOD_SETTING_SCOPE_RUNTIME,
+    },
+    {
+        id = "show_current_biome",
+        ui_name = "Show Biome",
+        ui_description = "Show the name of the current biome, if there is one",
+        value_default = true,
         scope = MOD_SETTING_SCOPE_RUNTIME,
     },
     {
         id = "quick_teleport",
         ui_name = "Instant Teleport",
         ui_description = "Teleport instantly upon selecting a target",
-        ui_default = false,
+        value_default = false,
         scope = MOD_SETTING_SCOPE_RUNTIME,
     },
     {
