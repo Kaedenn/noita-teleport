@@ -222,7 +222,7 @@ archive_is_unique() { # path file
 deploy_check_skip() { # path
   if [[ $1 == build ]]; then return 0; fi
   if [[ $1 =~ build/.* ]]; then return 0; fi
-  if [[ $1 == Makefile.sh ]]; then return 0; fi
+  if [[ $1 =~ .*.sh ]]; then return 0; fi
   return 1
 }
 
