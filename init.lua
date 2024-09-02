@@ -15,16 +15,15 @@
 --]]
 
 --[[ TODO:
--- Provide button to "leave current temple" when inside a temple.
---
 -- Allow for selectively removing modded places.
+-- Warp history.
 --
 -- Allow teleporting by clicking on a biome map
 --  BiomeMapConvertPixelFromUintToInt to get color, possibly?
 --]]
 
 dofile_once("data/scripts/lib/utilities.lua")
-dofile_once("data/scripts/lib/mod_settings.lua")
+-- luacheck: globals get_players check_parallel_pos
 KConf = dofile_once("mods/kae_waypoint/files/config.lua")
 dofile_once("mods/kae_waypoint/files/poi.lua")
 I18N = dofile_once("mods/kae_waypoint/files/i18n.lua")
@@ -75,6 +74,7 @@ end
 function add_last_msg(msg)
     if #g_messages == 0 or not compare_msg(g_messages[1], msg) then
         add_msg(msg)
+        print(("%s: %s"):format(MOD_ID, msg))
     end
 end
 
@@ -163,20 +163,25 @@ function warp_to(args)
 
     local arg_x, arg_y, arg_world
     if args.add then
+        -- Coordinates are declared relative
         arg_x = plr_x + nil_or(args.x, 0)
         arg_y = plr_y + nil_or(args.y, 0)
         arg_world = plr_world + nil_or(args.world, 0)
+    elseif args.world == nil then
+        -- No world -> coordinates are absolute
+        arg_x = nil_or(args.x, abs_x)
+        arg_y = nil_or(args.y, abs_y)
+        arg_x, arg_y, arg_world = pos_abs_to_rel(arg_x, arg_y)
     else
+        -- Has world -> coordinates are relative
         arg_x = nil_or(args.x, plr_x)
         arg_y = nil_or(args.y, plr_y)
-        arg_world = nil_or(args.world, plr_world)
+        arg_world = args.world
     end
 
     local final_x, final_y = pos_rel_to_abs(arg_x, arg_y, arg_world)
     debug_msg(("Warp to [%.02f, %.02f] in PW %d (%.02f, %.02f)"):format(
-        arg_x, arg_y,
-        arg_world,
-        final_x, final_y))
+        arg_x, arg_y, arg_world, final_x, final_y))
 
     if not args.returning then
         save_x, save_y, save_world = plr_x, plr_y, plr_world
@@ -189,7 +194,6 @@ function warp_to(args)
 
     GamePrint(("Warped to %0.2f, %0.2f, world %d"):format(
         arg_x, arg_y, arg_world))
-
 end
 
 function load_waypoint(item)
@@ -421,7 +425,8 @@ function _build_gui()
         g_messages = {}
     end
 
-    if imgui.Button("Get Position") then
+    imgui.SameLine()
+    if imgui.SmallButton("Get Position") then
         local plr_x, plr_y = get_player_pos(player)
         input_x, input_y, input_world = pos_abs_to_rel(plr_x, plr_y)
         add_msg({
@@ -431,7 +436,6 @@ function _build_gui()
         })
     end
 
-    imgui.SameLine()
     if imgui.Button("Teleport") or g_teleport_now then
         g_teleport_now = false
         warp_to{player,
@@ -468,6 +472,7 @@ function _build_gui()
         end
     end
 
+    local same_line = false
     if save_x ~= nil and save_y ~= nil and save_world ~= nil then
         if imgui.Button("Teleport Back") then
             warp_to{player,
@@ -475,6 +480,24 @@ function _build_gui()
                 y = save_y,
                 world = save_world,
                 returning = true
+            }
+        end
+        same_line = true
+    end
+
+    if player_in_temple() then
+        if same_line then
+            imgui.SameLine()
+        end
+        if imgui.Button("Leave Temple") then
+            add_msg({
+                "Left temple",
+                pos = {x=curr_abs_x, y=curr_abs_y},
+            })
+            local tx, ty = temple_get_exit()
+            warp_to{player,
+                x = tx,
+                y = ty
             }
         end
     end
@@ -641,7 +664,8 @@ function OnWorldPostUpdate()
     if imgui ~= nil then
         local status, result = xpcall(_do_post_update, on_error)
         if not status then
-            GamePrint(("_do_post_update failed with %s"):format(result))
+            GamePrint(("%s: _do_post_update failed with %s"):format(MOD_ID, result))
+            print_error(("%s: _do_post_update failed with %s"):format(MOD_ID, result))
         end
     else
         GamePrint("kae_waypoint - imgui not found; see workshop page for instructions")

@@ -9,6 +9,9 @@
 --  Determine if HM_COARSE_STEP/HM_FINE_MAX should be 512 instead of 500
 --]]
 
+dofile_once("data/scripts/lib/utilities.lua")
+-- luacheck: globals get_players
+
 Temples = {}
 
 HM_COARSE_MIN = 0       -- Coarse: start at Y=0
@@ -21,6 +24,9 @@ HM_ADJUST_DELTA = 200
 HM_ABS_X = -677         -- data/entities/buildings/teleport_liquid_powered.xml
 HM_REAL_X = -359        -- actual X coordinate; deduced experimentally
 HM_REAL_ADJUST = -27    -- Y adjustment
+
+HM_EXIT_DX = 20         -- Difference between temple AABB max_x and exit
+HM_EXIT_DY = 0          -- Difference between temple AABB max_y and exit
 
 --[[ Find the exact Y position from a relative one.
 --
@@ -124,34 +130,51 @@ function init_temple_list(temple_list)
     table.insert(temple_list, Temple:new(FINAL_TEMPLE))
 end
 
-function player_in_temple()
+--[[ Get temple absolute bounding box (min_x, max_x, min_y, max_y) ]]
+function temple_get_aabb()
     local player = get_players()[1]
     local px, py = EntityGetTransform(player)
-    if not px or not py then return false end
+    if not px or not py then return nil, nil, nil, nil end
 
     local entid = EntityGetClosestWithTag(px, py, "workshop_aabb")
-    if not entid then return false end
-
-    local ex, ey = EntityGetTransform(entid)
-    if not ex or not ey then
-        print_error(("workshop_aabb entity %d lacks position"):format(entid))
-        return false
-    end
+    if entid == 0 then return nil, nil, nil, nil end
 
     local comp = EntityGetFirstComponent(entid, "HitboxComponent")
-    if not comp then
-        print_error(("workshop_aabb entity %d lacks hitbox"):format(entid))
-        return false
-    end
+    if not comp == 0 then return nil, nil, nil, nil end
+
+    local ex, ey = EntityGetTransform(entid)
+    if not ex or not ey then return nil, nil, nil, nil end
 
     local aabb_min_x = ComponentGetValue2(comp, "aabb_min_x")
     local aabb_max_x = ComponentGetValue2(comp, "aabb_max_x")
     local aabb_min_y = ComponentGetValue2(comp, "aabb_min_y")
     local aabb_max_y = ComponentGetValue2(comp, "aabb_max_y")
+    return aabb_min_x + ex, aabb_max_x + ex, aabb_min_y + ey, aabb_max_y + ey
+end
 
-    if px >= ex + aabb_min_x and px <= ex + aabb_max_x then
-        if py >= ey + aabb_min_y and py <= ey + aabb_max_y then
-            return true
+--[[ Get temple exit coordinate ]]
+function temple_get_exit()
+    local aabb_min_x, aabb_max_x, aabb_min_y, aabb_max_y = temple_get_aabb()
+    if aabb_min_x and aabb_max_x and aabb_min_y and aabb_max_y then
+        local adj_x = HM_EXIT_DX
+        local adj_y = HM_EXIT_DY
+        return aabb_max_x + adj_x, aabb_max_y + adj_y
+    end
+    return nil, nil
+end
+
+--[[ True if the player is currently in a temple ]]
+function player_in_temple()
+    local player = get_players()[1]
+    local px, py = EntityGetTransform(player)
+    if not px or not py then return false end
+
+    local aabb_min_x, aabb_max_x, aabb_min_y, aabb_max_y = temple_get_aabb()
+    if aabb_min_x and aabb_max_x and aabb_min_y and aabb_max_y then
+        if px >= aabb_min_x and px <= aabb_max_x then
+            if py >= aabb_min_y and py <= aabb_max_y then
+                return true
+            end
         end
     end
     return false
