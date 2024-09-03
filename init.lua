@@ -97,15 +97,14 @@ end
 
 --[[ Called on error caught by xpcall ]]
 function on_error(arg)
-    if arg ~= nil then
-        GamePrint(tostring(arg))
-        add_msg(arg)
-    else
-        GamePrint("on_error called with nil value!")
-        add_msg("on_error called with nil value!")
-    end
+    GamePrint(tostring(arg))
+    add_msg(arg)
+    print_error(msg)
     if debug and debug.traceback then
         add_msg(debug.traceback())
+    else
+        print_error("Generating traceback...")
+        SetPlayerSpawnLocation()
     end
 end
 
@@ -284,6 +283,20 @@ function _add_poi_to(places, entry)
     end
 end
 
+--[[ Draw a hover message ]]
+function _draw_hover(content)
+    if imgui.IsItemHovered() then
+        if imgui.BeginTooltip() then
+            if type(content) == "function" then
+                content()
+            else
+                imgui.Text(tostring(content))
+            end
+            imgui.EndTooltip()
+        end
+    end
+end
+
 function _add_menu_item(item)
     local label_raw = item[1]
     if type(item.label_fn) == "function" then
@@ -419,10 +432,22 @@ function _build_gui()
     imgui.SetNextItemWidth(100)
     ret, input_world = imgui.InputInt("World", input_world)
     ret, input_relative = imgui.Checkbox("Relative", input_relative)
+    if ret then
+        if input_relative then
+            input_x = input_x - curr_abs_x
+            input_y = input_y - curr_abs_y
+        else
+            input_x = input_x + curr_abs_x
+            input_y = input_y + curr_abs_y
+        end
+    end
 
-    imgui.SameLine()
-    if imgui.SmallButton("Clear") then
-        g_messages = {}
+    if #g_messages > 0 then
+        imgui.SameLine()
+        if imgui.SmallButton("Clear") then
+            g_messages = {}
+        end
+        _draw_hover("Clear the teleport log below")
     end
 
     imgui.SameLine()
@@ -435,6 +460,7 @@ function _build_gui()
             biome = BiomeMapGetName(input_x, input_y),
         })
     end
+    _draw_hover("Save your current position")
 
     if imgui.Button("Teleport") or g_teleport_now then
         g_teleport_now = false
@@ -453,6 +479,7 @@ function _build_gui()
             returning = true
         }
     end
+    _draw_hover("Teleport to the west parallel world, at your current location")
 
     imgui.SameLine()
     if imgui.Button("Go East") then
@@ -461,6 +488,7 @@ function _build_gui()
             returning = true
         }
     end
+    _draw_hover("Teleport to the east parallel world, at your current location")
 
     if curr_world ~= 0 then
         imgui.SameLine()
@@ -470,6 +498,7 @@ function _build_gui()
                 returning = true
             }
         end
+        _draw_hover("Return to the main (central) world")
     end
 
     local same_line = false
@@ -482,6 +511,7 @@ function _build_gui()
                 returning = true
             }
         end
+        _draw_hover("Return to the previous location you were before teleporting")
         same_line = true
     end
 
@@ -490,16 +520,23 @@ function _build_gui()
             imgui.SameLine()
         end
         if imgui.Button("Leave Temple") then
-            add_msg({
-                "Left temple",
-                pos = {x=curr_abs_x, y=curr_abs_y},
-            })
             local tx, ty = temple_get_exit()
+            local biome = BiomeMapGetName(tx, ty + 100)
+            if not biome or biome == "" or biome == "_EMPTY_" then
+                biome = "<unknown biome>"
+            else
+                biome = GameTextGetTranslatedOrNot(biome)
+            end
+            add_msg({
+                ("Left temple into %s"):format(biome),
+                pos = {x=curr_abs_x, y=curr_abs_y}
+            })
             warp_to{player,
                 x = tx,
                 y = ty
             }
         end
+        _draw_hover("Leave the temple you're currently in")
     end
 
     -- Ensure the controls are visible
