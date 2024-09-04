@@ -26,7 +26,7 @@ HM_REAL_X = -359        -- actual X coordinate; deduced experimentally
 HM_REAL_ADJUST = -27    -- Y adjustment
 
 HM_EXIT_DX = 20         -- Difference between temple AABB max_x and exit
-HM_EXIT_DY = 0          -- Difference between temple AABB max_y and exit
+HM_EXIT_DY = -40        -- Difference between temple AABB max_y and exit
 
 --[[ Find the exact Y position from a relative one.
 --
