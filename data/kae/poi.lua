@@ -1,10 +1,35 @@
 --[[ Provide mods the ability to add custom places ]]
 
+dofile_once("data/scripts/lib/utilities.lua")
+-- luacheck: globals check_parallel_pos
+
+--[[ Flatten a (possibly nested) table of strings ]]
+function _flatten_table(tbl, sep)
+    local entries = {}
+    for _, entry in ipairs(tbl) do
+        local item = entry
+        if type(item) == "table" then
+            item = _flatten_table(entry, sep or " ")
+        elseif type(item) ~= "string" then
+            item = tostring(entry)
+        end
+        table.insert(entries, item)
+    end
+    return table.concat(entries, sep or " ")
+end
+
 --[[ Build a string for the POI, for diagnostics ]]
 function _entry_to_string(entry)
     local label = entry[1]
-    if entry.group then
-        label = ("%s/%s"):format(entry.group, label)
+    if type(label) == "table" then
+        label = _flatten_table(label)
+    end
+    local group = entry.group
+    if type(group) == "table" then
+        group = _flatten_table(group)
+    end
+    if group then
+        label = ("%s/%s"):format(group, label)
     end
     return label
 end
@@ -51,8 +76,8 @@ function _create_poi(entry)
         error_msg = ("%s not table"):format(type(entry))
     elseif #entry < 2 then
         error_msg = "missing required fields"
-    elseif type(entry[1]) ~= "string" then
-        error_msg = ("label %s not string"):format(type(entry[1]))
+    elseif type(entry[1]) ~= "string" and type(entry[1]) ~= "table" then
+        error_msg = ("label %s not string or table"):format(type(entry[1]))
     elseif type(entry[2]) ~= "table" then
         error_msg = ("coords %s not table"):format(type(entry[2]))
     elseif #entry[2] ~= 2 and #entry[2] ~= 3 then
@@ -60,8 +85,7 @@ function _create_poi(entry)
     end
     if error_msg ~= nil then return nil, error_msg end
 
-    local label = entry[1]
-    local coords = entry[2]
+    local label, coords = unpack(entry)
     local xpos, ypos = coords[1], coords[2]
     if type(xpos) ~= "number" or type(ypos) ~= "number" then
         error_msg = ("coords %q,%q not numbers"):format(tostring(xpos), tostring(ypos))
@@ -70,7 +94,7 @@ function _create_poi(entry)
 
     local result = {label, {xpos, ypos}}
     if #coords == 3 then
-        local wpos = coords[2]
+        local wpos = coords[3]
         if type(wpos) ~= "number" then
             error_msg = ("world %q not number"):format(tostring(wpos))
         else
@@ -86,29 +110,43 @@ function _create_poi(entry)
 end
 
 --[[ True if the two POIs go to the same place
--- world=nil will match all locations regardless of world.
+-- world=nil will treat x and y as absolute coordinates
 --]]
 function _is_same_location(entry1, entry2)
-    local ex, ey = entry1[2][1], entry1[2][2]
-    local ew = entry1[2][3]
-    local nx, ny = entry2[2][1], entry2[2][2]
-    local nw = entry2[2][3]
-    if ex == nx and ey == ny then
-        if ew == nil or nw == nil or ew == nw then
-            return true
-        end
+    local ex, ey, ew = unpack(entry1[2])
+    local nx, ny, nw = unpack(entry2[2])
+    if ew == nil then
+        ex, ey, ew = pos_abs_to_rel(ex, ey)
     end
-    return false
+    if nw == nil then
+        nx, ny, nw = pos_abs_to_rel(nx, ny)
+    end
+    return ex == nx and ey == ny and ew == nw
 end
 
 --[[ True if the given POI duplicates another POI ]]
 function _is_duplicate_entry(entries, new_entry)
     for _, entry in ipairs(entries) do
-        if _is_same_location(entry, new_entry) then
+        if entry.l then
+            local res, dupe = _is_duplicate_entry(entry.l, new_entry)
+            if res then return res, dupe end
+        elseif _is_same_location(entry, new_entry) then
             return true, entry
         end
     end
     return false, nil
+end
+
+--[[ Decompose absolute [x, y] into [x, y, world offset] ]]
+function pos_abs_to_rel(px, py)
+    local pw, mx = check_parallel_pos(px)
+    return mx, py, pw
+end
+
+--[[ Compose [x, y, world offset] into absolute [x, y] ]]
+function pos_rel_to_abs(px, py, world)
+    local x_adj = get_world_width() * world
+    return px + x_adj, py
 end
 
 --[[
@@ -120,6 +158,7 @@ end
 --
 -- Returns status:true, error_message:nil on success.
 -- Returns status:false, error_message:string on error.
+-- Returns status:false, error_message:nil if entry was already added.
 --]]
 function add_places_entry(entry)
     local entries = _get_places()
@@ -127,8 +166,12 @@ function add_places_entry(entry)
     if new_entry ~= nil then
         local duplicates, duplicate = _is_duplicate_entry(entries, new_entry)
         if duplicates then
-            return false, ("entry %s duplicates %s"):format(
-                new_entry[1], _entry_to_string(duplicate))
+            local e1str = _entry_to_string(new_entry)
+            local e2str = _entry_to_string(duplicate)
+            if e1str ~= e2str then
+                return false, ("entry %s duplicates %s"):format(e1str, e2str)
+            end
+            return false, nil -- duplicates itself
         end
         table.insert(entries, new_entry)
         _save_places(entries)

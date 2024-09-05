@@ -232,10 +232,12 @@ end
 function is_valid_poi(entry)
     if type(entry) ~= "table" then return false end
     if #entry ~= 2 then return false end
-    if type(entry[1]) ~= "string" then return false end
-    if type(entry[2]) ~= "table" then return false end
-    if #entry[2] ~= 2 and #entry[2] ~= 3 then return false end
-    if #entry[2] == 0 then
+    local ename, epos = unpack(entry)
+    local ntype, ptype = type(ename), type(epos)
+    if ntype ~= "string" and ntype ~= "table" then return false end
+    if ptype ~= "table" then return false end
+    if #epos ~= 2 and #epos ~= 3 then return false end
+    if #epos == 0 then
         if not entry.filter_fn and not entry.refine_fn then
             return false
         end
@@ -245,11 +247,15 @@ end
 
 --[[ True if the two entries go to the same place ]]
 function compare_poi(entry1, entry2)
-    local pos1 = entry1[2]
-    local pos2 = entry2[2]
-    local px, py, pw = pos1[1], pos1[2], pos1[3] or 0
-    local ex, ey, ew = pos2[1], pos2[2], pos2[3] or 0
-    return px == ex and py == ey and pw == ew
+    local ex, ey, ew = unpack(entry1[2])
+    local nx, ny, nw = unpack(entry2[2])
+    if ew == nil then
+        ex, ey, ew = pos_abs_to_rel(ex, ey)
+    end
+    if nw == nil then
+        nx, ny, nw = pos_abs_to_rel(nx, ny)
+    end
+    return ex == nx and ey == ny and ew == nw
 end
 
 --[[ True if the entry duplicates an existing one ]]
