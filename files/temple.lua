@@ -71,6 +71,7 @@ function temple_pos_to_id( pos_x, pos_y )
     return result
 end
 
+-- TODO: Remove; this is unused
 _temple_list = {
     -- {"name", {tele_x, tele_y}, {real_x, real_y}, "label"}
     {"$biome_excavationsite", {-200, 1330}, {-359, 1309}, "0_2"},
@@ -125,12 +126,13 @@ function init_temple_list(temple_list)
             biome_name,
             tele_pos,
             real_pos,
-            temple_id}))
+            temple_id
+        }))
     end
     table.insert(temple_list, Temple:new(FINAL_TEMPLE))
 end
 
---[[ Get temple absolute bounding box (min_x, max_x, min_y, max_y) ]]
+--[[ Get nearest temple's absolute bounding box (min_x, max_x, min_y, max_y) ]]
 function temple_get_aabb()
     local player = get_players()[1]
     local px, py = EntityGetTransform(player)
@@ -152,7 +154,7 @@ function temple_get_aabb()
     return aabb_min_x + ex, aabb_max_x + ex, aabb_min_y + ey, aabb_max_y + ey
 end
 
---[[ Get temple exit coordinate ]]
+--[[ Get temple exit coordinate; works even with final temple ]]
 function temple_get_exit()
     local aabb_min_x, aabb_max_x, aabb_min_y, aabb_max_y = temple_get_aabb()
     if aabb_min_x and aabb_max_x and aabb_min_y and aabb_max_y then

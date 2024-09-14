@@ -1,7 +1,6 @@
 --[[ Provide mods the ability to add custom places ]]
 
 dofile_once("data/scripts/lib/utilities.lua")
--- luacheck: globals check_parallel_pos
 
 --[[ Flatten a (possibly nested) table of strings ]]
 function _flatten_table(tbl, sep)
@@ -106,6 +105,11 @@ function _create_poi(entry)
     if type(entry.group) == "string" then
         result.group = entry.group
     end
+
+    if type(entry.hover) == "string" then
+        result.hover = entry.hover
+    end
+
     return result, nil
 end
 
@@ -191,10 +195,14 @@ end
 -- Returns true, nil on success.
 -- Returns false, error:string on error.
 --]]
-function add_poi(name, x, y, world)
+function add_poi(name, x, y, world, hover)
     local coord = {x, y}
     if world then coord = {x, y, world} end
-    local result, error_msg = add_places_entry({name, coord})
+    local new_poi = {name, coord}
+    if hover and type(hover) == "string" then
+        new_poi.hover = hover
+    end
+    local result, error_msg = add_places_entry(new_poi)
     return result, error_msg
 end
 
@@ -206,10 +214,14 @@ end
 -- Returns true, nil on success.
 -- Returns false, error:string on error.
 --]]
-function add_grouped_poi(group, name, x, y, world)
+function add_grouped_poi(group, name, x, y, world, hover)
     local coord = {x, y}
     if world then coord = {x, y, world} end
-    local result, error_msg = add_places_entry({name, coord, group=group})
+    local new_poi = {name, coord, group=group}
+    if hover and type(hover) == "string" then
+        new_poi.hover = hover
+    end
+    local result, error_msg = add_places_entry(new_poi)
     return result, error_msg
 end
 

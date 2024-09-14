@@ -6,7 +6,6 @@
 --]]
 
 dofile_once("data/scripts/lib/utilities.lua")
--- luacheck: globals orb_map_get
 
 BIOME_EMPTY = "_EMPTY_"
 BIOME_SIZE = 512
@@ -100,7 +99,7 @@ function init_orb_list(orb_list)
     end
 end
 
---[[ Orb validation snippet with kae_test
+--[[ Orb validation snippet (usable via kae_test)
 omap = orb_map_get()
 self.host:text_clear()
 tele_idx = 10

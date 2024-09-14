@@ -23,7 +23,6 @@
 --]]
 
 dofile_once("data/scripts/lib/utilities.lua")
--- luacheck: globals get_players check_parallel_pos
 KConf = dofile_once("mods/kae_waypoint/files/config.lua")
 dofile_once("mods/kae_waypoint/files/poi.lua")
 I18N = dofile_once("mods/kae_waypoint/files/i18n.lua")
@@ -36,7 +35,7 @@ CONF_SAVE_KEY = MOD_ID .. "." .. "_places"
 FORCE_UPDATE_KEY = MOD_ID .. "_force_update"
 
 local imgui
-local g_messages = {}
+local g_messages = {}           -- lines being drawn
 local g_force_update = true     -- trigger a POI recalculation
 local g_toveri_updated = false  -- did we determine Toveri's location?
 local g_teleport_now = false    -- don't just load the POI; teleport to it
@@ -99,7 +98,7 @@ end
 function on_error(arg)
     GamePrint(tostring(arg))
     add_msg(arg)
-    print_error(msg)
+    print_error(arg)
     if debug and debug.traceback then
         add_msg(debug.traceback())
     else
@@ -319,6 +318,9 @@ function _add_menu_item(item)
             end
             imgui.EndMenu()
         end
+        if item.hover then
+            _draw_hover(item.hover:gsub("%$[a-z0-9_]+", GameTextGetTranslatedOrNot))
+        end
     else
         -- Nested items can't have coordinates of their own
         local pos = item[2] or {}
@@ -332,6 +334,9 @@ function _add_menu_item(item)
                 ("Loaded waypoint %q"):format(label),
                 pos = {x=xpos, y=ypos, world=wpos}
             })
+        end
+        if item.hover then
+            _draw_hover(item.hover:gsub("%$[a-z0-9_]+", GameTextGetTranslatedOrNot))
         end
     end
 end

@@ -1,9 +1,9 @@
 -- Coordinates to and supporting functions for the orbs, bosses, and
 -- points of interest.
 
--- FIXME: Several different formats for modded POIs
---  {label, pos, filter_fn=nil, refine_fn=nil}
---  {label, pos, filter_fn=nil, refine_fn=nil, group=nil}
+-- TODO:
+-- Provide hover feedback if an eye location is inside cursed rock
+-- Provide eye platform locations
 
 --[[ Extra locations:
 -- Eye Platform (Sky) 5933 -4825
@@ -73,25 +73,24 @@ PLACES = setmetatable({
         {"$action_rainbow_trail", {-14000, -2851}},
     }},
     {"The Cauldron", {3845, 5435},
-        label_fn = function()
-            -- TODO: check cauldron bit
+        label_fn = function() -- TODO: check cauldron bit
             return "The Cauldron"
         end,
-        filter_fn = function()
-            if ModIsEnabled("disable-mod-restrictions") then
-                -- TODO: check Cauldron flag in ModSettings
-                return true
-            end
-            return false
-        end},
+        hover = "This only appears if you have Disable Mod Restrictions active"},
     {"Karl's Racetrack", {3300, 2350}},
-    {"Avarice Diamond", {9400, 4300}},
+    {"Avarice Diamond", {9400, 4300},
+        hover = "At the top of The $biome_tower"},
     {"Portals & Portal Rooms", l = {
-        {"Portal Room", {3836, 7540}},
-        {"Tower Portal", {-4330, 10850}},
-        {"Buried Diamond Room", {3900, 4400}},
-        {"Eye Room", {-3800, 5400}},
-        {"Meditation Cube Room", {-4300, 2300}},
+        {"Portal Room", {3836, 7540},
+            hover = "Portals are active after defeating $animal_fish_giga"},
+        {"Meditation Cube Room", {-4300, 2300},
+            hover = "Secret room accessible from $biome_excavationsite"},
+        {"Buried Diamond Room", {3900, 4400},
+            hover = "Secret room accessible from $biome_snowcave"},
+        {"Eye Room", {-3800, 5400},
+            hover = "Secret room accessible from $biome_snowcastle"},
+        {"Tower Portal", {-4330, 10850},
+            hover = "Portal leading to The $biome_tower"},
     }},
     {"Items", l = {
         {"$item_evil_eye (Evil Eye)", {-2434, -207}},
@@ -115,7 +114,7 @@ PLACES = setmetatable({
         {{"$biome_west", {"$biome_desert"}}, {48921, 15}},
     }},
     {"Music Machines", l = {
-        {"Snow", {-12180, -420}},   -- music_machine_02 ??
+        {"Snow", {-12180, -420}},   -- music_machine_02
         {"Desert", {14700, -80}},   -- music_machine_00
         {"Tree", {-1905, -1420}},   -- music_machine_01
         {"Lake", {2800, 260}},      -- music_machine_03
@@ -126,16 +125,16 @@ PLACES = setmetatable({
     }},
     {"Shops", l = {
         {"Hell", {-3000, 28000}},
-        {"Hell +1", {-3000, 52600}}, -- Y+=246000
-        {"Hell +2", {-3000, 77200}},
-        {"Hell (Mimic)", {-1750, 19400}}, -- Verify
-        {"Hell (Kivi)", {2775, 19550}}, -- Verify
-        {"Hell (small)", {-3310, 35800}}, -- Verify
-        {"Hell (mini)", {130, 24727}}, -- Verify
-        {"Sky", {-3300, -21000}}, -- Verify
-        {"Sky (Mimic)", {-1750, -29730}}, -- Verify
-        {"Sky (Kivi)", {2775, -29570}}, -- Verify
-        {"Sky (small)", {3310, -13300}}, -- Verify
+        {"Hell +1", {-3000, 52600}},        -- Y=Y+246000
+        {"Hell +2", {-3000, 77200}},        -- Y=Y+246000
+        {"Hell (Mimic)", {-1750, 19400}},   -- Verify
+        {"Hell (Kivi)", {2775, 19550}},     -- Verify
+        {"Hell (small)", {-3310, 35800}},   -- Verify
+        {"Hell (mini)", {130, 24727}},      -- Verify
+        {"Sky", {-3300, -21000}},           -- Verify
+        {"Sky (Mimic)", {-1750, -29730}},   -- Verify
+        {"Sky (Kivi)", {2775, -29570}},     -- Verify
+        {"Sky (small)", {3310, -13300}},    -- Verify
     }},
     {"Special Wands", l = {
         {"$item_wand_experimental_1 (Gun)", {16130, 10000}},
@@ -147,13 +146,15 @@ PLACES = setmetatable({
         {"Eastern $biome_gold", {15100, -3200}},
         {"Infinite $biome_robobase", {-16640, 16896}}, -- biome -32.5 33
     }},
-    {"Eye Glyphs", l = { }},
+    {"Eye Glyphs", l = { },
+        hover = "These only appear if you have Disable Mod Restrictions active"},
 
     --[[ Example custom waypoint with filter and update functions ]]
     {"Custom Waypoint (Example)",
         {-1, -1}, -- default position
         filter_fn = function(self) return false end, -- never display
         update_fn = function(self) return 0, 0, 0 end, -- always origin
+        hover = "This text will appear if you hover over the menu item",
     },
 }, {
     __index = function(tbl, key)
@@ -191,9 +192,10 @@ function update_toveri_cave(cave_idx) -- returns {x, y}
     for _, entry in ipairs(PLACES) do
         local key = entry[1]
         if key == "$animal_friend Caves" then
-            local val = entry.l
-            val[menu_idx][1] = val[menu_idx][1] .. " [!]"
-            return val[menu_idx][2]
+            local item = entry.l[menu_idx]
+            item[1] = item[1] .. " [!]"
+            item.hover = "This is where $animal_friend is currently"
+            return item[2]
         end
     end
     error("Failed to find '$animal_friend Caves' entry")
@@ -204,15 +206,20 @@ function update_eye_locations()
     dofile("mods/kae_waypoint/files/eyes.lua")
     PLACES["Eye Glyphs"].l = {}
     for idx, entry in ipairs(get_eye_locations(nil)) do
-        local label = ("%s %d"):format(entry[1], math.floor((idx+1)/2))
-        table.insert(PLACES["Eye Glyphs"].l, {label, {entry[2], entry[3]}})
+        local eyex, eyey = entry[2], entry[3]
+        local eyenum = math.floor((idx+1)/2)
+        local label = ("%s %d [%d %d]"):format(entry[1], eyenum, eyex, eyey)
+        local new_poi = {label, {eyex, eyey}}
+        table.insert(PLACES["Eye Glyphs"].l, new_poi)
     end
 end
 
 --[[ Public API for mods wishing to add their own waypoints ]]
 
 function create_poi(args)
-    local poi = {args[1], args[2] or {nil, nil}}
+    local poi_label = args[1]
+    local poi_coord = args[2] or {nil, nil}
+    local poi = {poi_label, poi_coord}
     if args.label_fn and type(args.label_fn) == "function" then
         poi.label_fn = args.label_fn
     end
@@ -224,6 +231,9 @@ function create_poi(args)
     end
     if args.group and type(args.group) == "string" then
         poi.group = args.group
+    end
+    if args.hover and type(args.hover) == "string" then
+        poi.hover = args.hover
     end
     return poi
 end
