@@ -204,8 +204,9 @@ function load_waypoint(item)
     local target_world = pos[3] or pos.world or 0
 
     -- Allow for locations to provide custom logic (see README.md)
-    if type(pos.refine_fn) == "function" then
-        local new_x, new_y, new_world = pos.refine_fn(pos)
+    if type(item.refine_fn) == "function" then
+        local new_x, new_y, new_world = item.refine_fn(item)
+        debug_msg(("Refined POI to %s,%s,%s"):format(new_x, new_y, new_world))
         if new_x ~= nil then target_x = new_x end
         if new_y ~= nil then target_y = new_y end
         if new_world ~= nil then target_world = new_world end
@@ -328,7 +329,9 @@ function _add_menu_item(item)
             label = label .. " [TODO]"
         end
         if imgui.MenuItem(label) then
-            load_waypoint({label, pos})
+            local new_poi = {label, pos}
+            if item.refine_fn then new_poi.refine_fn = item.refine_fn end
+            load_waypoint(new_poi)
             local xpos, ypos, wpos = pos_abs_to_rel(pos[1], pos[2])
             add_msg({
                 ("Loaded waypoint %q"):format(label),

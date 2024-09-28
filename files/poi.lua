@@ -8,6 +8,7 @@
 --[[ Extra locations:
 -- Eye Platform (Sky) 5933 -4825
 -- Eye Platform (Power Plant) 13056 10023
+-- Eye Platform (Blue Fungal Area) 15100 1830
 -- Hell Shop (Mimicium Temple copy?) -1500 43600 (verify NG+)
 --]]
 
@@ -40,12 +41,12 @@ PLACES = setmetatable({
     }},
     {"Perk Removal Altar",
         {14196, 7551},
-        refine_fn = function(self)
+        refine_fn = function(pos)
             local newgame_n = tonumber(SessionNumbersGetValue("NEW_GAME_PLUS_COUNT"))
             if newgame_n ~= 0 then
-                return {-11520, 13100}
+                return -11520, 13100
             end
-            return self
+            return unpack(pos)
         end},
     {"Celestial Bodies", l = {
         {"Moon", {290, -25500}},
@@ -146,6 +147,7 @@ PLACES = setmetatable({
         {"Eastern $biome_gold", {15100, -3200}},
         {"Infinite $biome_robobase", {-16640, 16896}}, -- biome -32.5 33
     }},
+    {"$biome_boss_victoryroom", {6400, 15160}},
     {"Eye Glyphs", l = { },
         hover = "These only appear if you have Disable Mod Restrictions active"},
 
@@ -153,7 +155,7 @@ PLACES = setmetatable({
     {"Custom Waypoint (Example)",
         {-1, -1}, -- default position
         filter_fn = function(self) return false end, -- never display
-        update_fn = function(self) return 0, 0, 0 end, -- always origin
+        refine_fn = function(pos) return 0, 0, 0 end, -- always origin
         hover = "This text will appear if you hover over the menu item",
     },
 }, {
