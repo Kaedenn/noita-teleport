@@ -1,23 +1,62 @@
 
+files["data/kae/poi.lua"] = {
+  read_globals = {
+    -- "data/scripts/lib/utilities.lua"
+    "check_parallel_pos",
+  }
+}
+
+files["files/config.lua"] = {
+  read_globals = {
+  }
+}
+
+files["files/biome.lua"] = {
+  read_globals = {
+  }
+}
+
+files["files/eyes.lua"] = {
+  read_globals = {
+  }
+}
+
+files["files/i18n.lua"] = {
+  read_globals = {
+    -- "files/utility.lua"
+    "to_title",
+  }
+}
+
 files["files/orbs.lua"] = {
   read_globals = {
     -- "data/scripts/lib/utilities.lua"
     "orb_map_get",
-  },
+  }
+}
+
+files["files/poi.lua"] = {
+  read_globals = {
+    -- "data/scripts/lib/utilities.lua"
+    "check_parallel_pos",
+
+    -- "files/eyes.lua"
+    "get_eye_locations",
+  }
 }
 
 files["files/temple.lua"] = {
   read_globals = {
     -- "data/scripts/lib/utilities.lua"
     "get_players",
-  },
+  }
 }
 
-files["data/kae/poi.lua"] = {
+files["files/waypoint.lua"] = {
   read_globals = {
-    -- "data/scripts/lib/utilities.lua"
-    "check_parallel_pos",
-  },
+    -- "files/config.lua"
+    "MOD_ID",
+  }
 }
 
 files["settings.lua"] = {
@@ -28,15 +67,45 @@ files["settings.lua"] = {
     "mod_settings_gui",
     "mod_settings_gui_count",
     "mod_settings_update",
-  },
+  }
+}
+
+files["files/utility.lua"] = {
+  read_globals = {
+  }
 }
 
 files["init.lua"] = {
   read_globals = {
     -- "data/scripts/lib/utilities.lua"
     "get_players",
-    "check_parallel_pos",
-  },
+
+    -- "files/biome.lua"
+    "get_biome_name",
+
+    -- "files/config.lua"
+    "MOD_ID",
+
+    -- "files/orbs.lua"
+    "init_orb_list",
+
+    -- "files/temples.lua"
+    "init_temple_list",
+
+    -- "files/poi.lua"
+    "BOSSES",
+    "PLACES",
+    "create_poi",
+    "is_duplicate_poi",
+    "is_valid_poi",
+    "lookup_color",
+    "player_in_temple",
+    "get_world_width",
+    "pos_abs_to_rel",
+    "pos_rel_to_abs",
+    "temple_get_exit",
+    "update_eye_locations",
+  }
 }
 
 read_globals = {

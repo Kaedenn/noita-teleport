@@ -175,6 +175,23 @@ PLACES = setmetatable({
     end
 })
 
+--[[ The world size can vary between NG and NG+ ]]
+function get_world_width()
+    return BiomeMapGetSize() * 512
+end
+
+--[[ Decompose absolute [x, y] into [x, y, world offset] ]]
+function pos_abs_to_rel(px, py)
+    local pw, mx = check_parallel_pos(px)
+    return mx, py, pw
+end
+
+--[[ Compose [x, y, world offset] into absolute [x, y] ]]
+function pos_rel_to_abs(px, py, world)
+    local x_adj = get_world_width() * world
+    return px + x_adj, py
+end
+
 --[[ Private functions not intended for modders to use ]]
 
 --[[ Where is Toveri? Taken from data/scripts/biomes/friend_#.lua ]]

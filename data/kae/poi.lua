@@ -2,6 +2,11 @@
 
 dofile_once("data/scripts/lib/utilities.lua")
 
+--[[ The world size can vary between NG and NG+ ]]
+function get_world_width()
+    return BiomeMapGetSize() * 512
+end
+
 --[[ Flatten a (possibly nested) table of strings ]]
 function _flatten_table(tbl, sep)
     local entries = {}

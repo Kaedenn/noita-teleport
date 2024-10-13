@@ -1,6 +1,7 @@
 --[[ This file can be used with LuaJIT standalone to test POI ]]
 
 dofile("mods/kae_waypoint/files/poi.lua")
+-- luacheck: globals PLACES
 
 function get_poi_byname(name)
     for idx, entry in ipairs(PLACES) do

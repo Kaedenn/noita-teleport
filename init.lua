@@ -23,6 +23,7 @@
 --]]
 
 dofile_once("data/scripts/lib/utilities.lua")
+dofile_once("mods/kae_waypoint/files/biome.lua")
 KConf = dofile_once("mods/kae_waypoint/files/config.lua")
 dofile_once("mods/kae_waypoint/files/poi.lua")
 I18N = dofile_once("mods/kae_waypoint/files/i18n.lua")
@@ -115,27 +116,10 @@ function nil_or(value, nilvalue)
     return value
 end
 
---[[ The world size can vary between NG and NG+ ]]
-function get_world_width()
-    return BiomeMapGetSize() * 512
-end
-
 --[[ Get the absolute position of the player ]]
 function get_player_pos(player)
     local px, py = EntityGetTransform(player)
     return px, py
-end
-
---[[ Decompose absolute [x, y] into [x, y, world offset] ]]
-function pos_abs_to_rel(px, py)
-    local pw, mx = check_parallel_pos(px)
-    return mx, py, pw
-end
-
---[[ Compose [x, y, world offset] into absolute [x, y] ]]
-function pos_rel_to_abs(px, py, world)
-    local x_adj = get_world_width() * world
-    return px + x_adj, py
 end
 
 --[[ Get the current position of the player, relative to the current world ]]
@@ -297,13 +281,21 @@ function _draw_hover(content)
     end
 end
 
-function _add_menu_item(item)
+function _add_menu_item(item, tweaks)
     local label_raw = item[1]
     if type(item.label_fn) == "function" then
         label_raw = item.label_fn(item)
     end
 
     local label = I18N.localize(label_raw, true)
+    if tweaks then
+        if tweaks.prefix then
+            label = tweaks.prefix .. label
+        end
+        if tweaks.suffix then
+            label = label .. tweaks.suffix
+        end
+    end
 
     if type(item.filter_fn) == "function" then
         if not item.filter_fn(item) then
@@ -315,12 +307,13 @@ function _add_menu_item(item)
         -- It's a nested item
         if imgui.BeginMenu(label) then
             for _, sub_item in pairs(item.l) do
-                _add_menu_item(sub_item)
+                _add_menu_item(sub_item, tweaks)
             end
             imgui.EndMenu()
         end
-        if item.hover then
-            _draw_hover(item.hover:gsub("%$[a-z0-9_]+", GameTextGetTranslatedOrNot))
+        local hover_text = item.hover or (tweaks and tweaks.hover)
+        if hover_text then
+            _draw_hover(hover_text:gsub("%$[a-z0-9_]+", GameTextGetTranslatedOrNot))
         end
     else
         -- Nested items can't have coordinates of their own
@@ -372,9 +365,14 @@ function _build_menu_bar_gui()
         end
         if imgui.BeginMenu("Temples") then
             for _, tdef in ipairs(Temples) do
-                _add_menu_item(tdef:as_poi())
+                _add_menu_item(tdef:as_poi(), {
+                    --[[prefix="From "]]
+                })
             end
             imgui.EndMenu()
+        else
+            local text = "The listed biome is above the $biome_holymountain"
+            _draw_hover(text:gsub("%$[a-z0-9_]+", GameTextGetTranslatedOrNot))
         end
         if imgui.BeginMenu("Orbs") then
             for _, odef in pairs(Orbs) do
@@ -463,9 +461,9 @@ function _build_gui()
         local plr_x, plr_y = get_player_pos(player)
         input_x, input_y, input_world = pos_abs_to_rel(plr_x, plr_y)
         add_msg({
-            ("Got %d, %d, world %d"):format(input_x, input_y, input_world),
+            ("Got x=%d, y=%d, world %d"):format(input_x, input_y, input_world),
             pos = {x=input_x, y=input_y, world=input_world},
-            biome = BiomeMapGetName(input_x, input_y),
+            biome = get_biome_name(input_x, input_y),
         })
     end
     _draw_hover("Save your current position")
@@ -529,14 +527,8 @@ function _build_gui()
         end
         if imgui.Button("Leave Temple") then
             local tx, ty = temple_get_exit()
-            local biome = BiomeMapGetName(tx, ty + 100)
-            if not biome or biome == "" or biome == "_EMPTY_" then
-                biome = "<unknown biome>"
-            else
-                biome = GameTextGetTranslatedOrNot(biome)
-            end
             add_msg({
-                ("Left temple into %s"):format(biome),
+                "Left temple",
                 pos = {x=curr_abs_x, y=curr_abs_y}
             })
             warp_to{player,
@@ -595,9 +587,12 @@ function _draw_line(line)
             }
         end
         imgui.SameLine()
-        local biome = line.biome or BiomeMapGetName(line.pos.x, line.pos.y)
-        if biome ~= "_EMPTY_" then
-            imgui.Text(("[%s]"):format(GameTextGet(biome)))
+        local biome = get_biome_name(line.pos.x, line.pos.y)
+        if line.biome then
+            biome = GameTextGetTranslatedOrNot(line.biome)
+        end
+        if biome and biome ~= "" and biome ~= "_EMPTY_" then
+            imgui.Text(("[%s]"):format(biome))
             imgui.SameLine()
         end
     end
@@ -673,9 +668,9 @@ function _do_post_update()
             local player = get_players()[1]
             local plrx, plry = get_player_pos(player)
             if plrx ~= nil and plry ~= nil then
-                local biome = BiomeMapGetName(plrx, plry)
-                if biome ~= "_EMPTY_" then
-                    title = ("%s: %s"):format(title, GameTextGet(biome))
+                local bname = get_biome_name(plrx, plry)
+                if bname then
+                    title = title .. ": " .. bname
                 end
             end
         end

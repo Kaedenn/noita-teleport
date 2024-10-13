@@ -1,5 +1,7 @@
 --[[ This file can be used with LuaJIT to test the Waypoint object ]]
 
+-- luacheck: globals smallfolk Waypoints
+
 dofile("mods/kae_waypoint/files/waypoint.lua")
 wp = Waypoints:new()
 wp:add{"First", {0, 0}}
